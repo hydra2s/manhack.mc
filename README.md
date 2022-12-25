@@ -14,6 +14,7 @@
 - 💔 OpenGL interop (but planned to fully replace)
 - 💔 Single draw call instead of bunch of GL calls
 - 💔 Sort of NVIDIA Remix or ReShade (better than RTGI)
+- 💔 Replacement for [Iris](https://github.com/IrisShaders/Iris) or [Canvas](https://github.com/vram-guild/canvas).
 
 ## Setup
 
