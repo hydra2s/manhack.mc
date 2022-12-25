@@ -10,7 +10,7 @@
 - 💔 Future of rendering
 - 💔 Ray-tracing support
 - 💔 Yet another architecture
-- 💔 SPIR-V shaders support (unlike a VulkanMod)
+- 💔 SPIR-V shaders support (unlike a [VulkanMod](https://github.com/xCollateral/VulkanMod))
 - 💔 OpenGL interop (but planned to fully replace)
 - 💔 Single draw call instead of bunch of GL calls
 - 💔 Sort of NVIDIA Remix or ReShade (better than RTGI)
