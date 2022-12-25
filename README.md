@@ -14,7 +14,11 @@
 - 💔 OpenGL interop (but planned to fully replace)
 - 💔 Single draw call instead of bunch of GL calls
 - 💔 Sort of NVIDIA Remix or ReShade (better than RTGI)
-- 💔 Replacement for [Iris](https://github.com/IrisShaders/Iris) or [Canvas](https://github.com/vram-guild/canvas).
+- 💔 Replacement for [Iris](https://github.com/IrisShaders/Iris) or [Canvas](https://github.com/vram-guild/canvas)
+
+## Timing of development
+
+💔 Rather extremely long, could take as long as 2024. Although we and I need to hurry, and do it as fast as we can. The contract is actually up to two years. 💔
 
 ## Setup
 
