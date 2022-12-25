@@ -1,12 +1,12 @@
 # 💔 Manhack (teaser) 💔
 
-💔 The new Minecraft rendering mod, based on Vulkan API and Noire.java. Also, this is, probably, final project of and in my life (i.e. finale of my 2023 year). 💔
+💔 The new Minecraft rendering mod, based on Vulkan API and [Noire.java](https://github.com/hydra2s/noire.java). Also, this is, probably, final project of and in my life (i.e. finale of my 2023 year). 💔
 
 ## TODO features
 
 - 💔 Hacking engine for Minecraft 1.19.3
 - 💔 Fully configurable (like Optifine)
-- 💔 Vulkan API 1.3.236 and Noire.java
+- 💔 Vulkan API 1.3.236 and [Noire.java](https://github.com/hydra2s/noire.java)
 - 💔 Future of rendering
 - 💔 Ray-tracing support
 - 💔 Yet another architecture
