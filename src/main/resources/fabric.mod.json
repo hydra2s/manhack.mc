@@ -8,10 +8,7 @@
     "hydra2s", "helixd"
   ],
   "contact": {
-    "sources": [
-      "https://github.com/hydra2s/noire.java",
-      "https://github.com/hydra2s/manhack.mc"
-    ]
+    "sources": "https://github.com/hydra2s/manhack.mc"
   },
   "license": "CC0-1.0",
   "icon": "assets/modid/icon.png",
