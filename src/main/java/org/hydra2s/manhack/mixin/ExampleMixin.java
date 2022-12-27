@@ -1,7 +1,7 @@
-package net.fabricmc.example.mixin;
+package org.hydra2s.manhack.mixin;
 
-import net.fabricmc.example.ExampleMod;
 import net.minecraft.client.gui.screen.TitleScreen;
+import org.hydra2s.manhack.ExampleMod;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
