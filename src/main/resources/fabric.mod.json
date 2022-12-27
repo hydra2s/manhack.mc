@@ -15,7 +15,7 @@
   "environment": "*",
   "entrypoints": {
     "main": [
-      "org.hydra2s.manhack.ExampleMod"
+      "org.hydra2s.manhack.MainObj"
     ]
   },
   "mixins": [

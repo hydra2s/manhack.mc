@@ -156,14 +156,14 @@ public class GlContext {
                     format = finalVkFormat;
                     mipLevels = 1;
                     arrayLayers = 1;
-                    isHost = true;
+                    isHost = false;
                     isDevice = true;
                     memoryAllocator = _memoryAllocator.getHandle().get();
                 }});
 
                 //
                 glBindTexture(GL_TEXTURE_2D, id);
-                glImportMemoryWin32HandleEXT(resource.glMemory = glCreateMemoryObjectsEXT(), width * height * 4, GL_HANDLE_TYPE_OPAQUE_WIN32_EXT, resourceObj.Win32Handle.get(0));
+                glImportMemoryWin32HandleEXT(resource.glMemory = glCreateMemoryObjectsEXT(), width * height * 4, GL_HANDLE_TYPE_OPAQUE_WIN32_EXT, resourceObj.getWin32Handle().get());
                 glTexStorageMem2DEXT(GL_TEXTURE_2D, maxLevel + 1, glFormat, width, height, resource.glMemory, resource.obj.memoryOffset);
 
                 //
@@ -175,8 +175,7 @@ public class GlContext {
     };
 
     //
-    public static int glCreateBuffer(int target, long defaultSize) {
-        int glBuffer[] = {0};
+    public static int glCreateBuffer(int target, long defaultSize, int glBuffer[]) {
         ResourceBuffer resource = new ResourceBuffer();
 
         //
@@ -186,13 +185,17 @@ public class GlContext {
             isHost = true;
             isDevice = true;
             size = defaultSize;
-            usage = VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+            usage = VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
             memoryAllocator = _memoryAllocator.getHandle().get();
         }});
 
         //
-        GL45.glCreateBuffers(glBuffer);
-        glImportMemoryWin32HandleEXT(resource.glMemory = glCreateMemoryObjectsEXT(), defaultSize, GL_HANDLE_TYPE_OPAQUE_WIN32_EXT, resource.obj.Win32Handle.get(0));
+        if (glBuffer != null && glBuffer[0] == 0) {
+            GL45.glCreateBuffers(glBuffer);
+        }
+
+        //
+        glImportMemoryWin32HandleEXT(resource.glMemory = glCreateMemoryObjectsEXT(), defaultSize, GL_HANDLE_TYPE_OPAQUE_WIN32_EXT, resource.obj.getWin32Handle().get());
         glNamedBufferStorageMemEXT(glBuffer[0], defaultSize, resource.glMemory, resource.obj.memoryOffset);
 
         //
@@ -201,33 +204,21 @@ public class GlContext {
     };
 
     //
+    public static int glCreateBuffer(int target, long defaultSize){
+        int glBuffer[] = {0};
+        return glCreateBuffer(target, defaultSize, glBuffer);
+    }
+
+    //
     public static void glBufferData(long defaultSize, int target, ByteBuffer data, int usage) {
-        //
         if (target == GL_ARRAY_BUFFER || target == GL_ELEMENT_ARRAY_BUFFER) {
             int id = glGetInteger(target == GL_ARRAY_BUFFER ? GL_ARRAY_BUFFER_BINDING : GL_ELEMENT_ARRAY_BUFFER_BINDING);
-            ResourceBuffer resource = GlContext.resourceBufferMap.get(id);
-
-            //
-            if (resource == null) {
-                var _pipelineLayout = rendererObj.pipelineLayout;
-                var _memoryAllocator = rendererObj.memoryAllocator;
-                (resource = new ResourceBuffer()).obj = new MemoryAllocationObj.BufferObj(rendererObj.logicalDevice.getHandle(), new MemoryAllocationCInfo.BufferCInfo(){{
-                    isHost = true;
-                    isDevice = true;
-                    size = Math.max(defaultSize, data.capacity());
-                    usage = VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-                    memoryAllocator = _memoryAllocator.getHandle().get();
-                }});
-
-                //
-                glImportMemoryWin32HandleEXT(resource.glMemory = glCreateMemoryObjectsEXT(), defaultSize, GL_HANDLE_TYPE_OPAQUE_WIN32_EXT, resource.obj.Win32Handle.get(0));
-                glBufferStorageMemEXT(target, defaultSize, resource.glMemory, resource.obj.memoryOffset);
-
-                //
-                GlContext.resourceBufferMap.put(id, resource);
+            if (GlContext.resourceBufferMap.get(id) == null) {
+                glCreateBuffer(target, Math.max(defaultSize, data.capacity()), new int[]{id});
             }
 
             // BUT needs also Math.min(defaultSize, data.limit())
+            // TODO: replace by Vulkan uploading system!
             glBufferSubData(target, 0, data);
         } else {
             GL20.glBufferData(target, data, usage);
