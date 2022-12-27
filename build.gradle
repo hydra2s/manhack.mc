@@ -74,6 +74,8 @@ dependencies {
     include(implementation("org.lwjgl:lwjgl-shaderc:$lwjglVersion"))
     include(runtimeOnly("org.lwjgl:lwjgl-shaderc:$lwjglVersion:$winNatives"))
     include(runtimeOnly("org.lwjgl:lwjgl-shaderc:$lwjglVersion:$linuxNatives"))
+
+    //include(implementation("me.modmuss50:voyager-2:2.0.0"))
 }
 
 processResources {
