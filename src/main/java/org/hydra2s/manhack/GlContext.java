@@ -32,11 +32,8 @@ import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL15.glBufferSubData;
 import static org.lwjgl.opengl.GL30.GL_R8;
 import static org.lwjgl.opengl.GL30.GL_RG8;
-import static org.lwjgl.opengl.GL31.GL_COPY_WRITE_BUFFER;
-import static org.lwjgl.opengl.GL31.glCopyBufferSubData;
 import static org.lwjgl.vulkan.KHRAccelerationStructure.VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
 import static org.lwjgl.vulkan.VK10.*;
-import static org.lwjgl.vulkan.VK10.VK_IMAGE_TYPE_2D;
 
 public class GlContext {
 
@@ -172,6 +169,42 @@ public class GlContext {
                 resourceObj = resource.obj;
             };
         };
+    };
+
+    public static int glCreateBuffer(int glBuffer[], ResourceBuffer resource) {
+        if (glBuffer != null && glBuffer[0] == 0) {GL45.glCreateBuffers(glBuffer);}
+
+        //
+        glImportMemoryWin32HandleEXT(resource.glMemory = glCreateMemoryObjectsEXT(), resource.bufferCreateInfo.size, GL_HANDLE_TYPE_OPAQUE_WIN32_EXT, resource.obj.getWin32Handle().get());
+        glNamedBufferStorageMemEXT(glBuffer[0], resource.bufferCreateInfo.size, resource.glMemory, resource.obj.memoryOffset);
+
+        //
+        GlContext.resourceBufferMap.put(glBuffer[0], resource);
+        return glBuffer[0];
+    }
+
+    //
+    public static int glCreateBuffer(ResourceBuffer resource) {
+        return glCreateBuffer(new int[]{0}, resource);
+    }
+
+    //
+    public static ResourceBuffer vkCreateBuffer(long defaultSize) {
+        ResourceBuffer resource = new ResourceBuffer();
+
+        //
+        var _pipelineLayout = rendererObj.pipelineLayout;
+        var _memoryAllocator = rendererObj.memoryAllocator;
+        resource.obj = new MemoryAllocationObj.BufferObj(rendererObj.logicalDevice.getHandle(), new MemoryAllocationCInfo.BufferCInfo(){{
+            isHost = true;
+            isDevice = true;
+            size = defaultSize;
+            usage = VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+            memoryAllocator = _memoryAllocator.getHandle().get();
+        }});
+
+        //
+        return resource;
     };
 
     //

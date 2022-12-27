@@ -1,6 +1,7 @@
 plugins {
     id 'fabric-loom' version '1.0-SNAPSHOT'
     id 'maven-publish'
+    id 'org.jetbrains.kotlin.jvm' version '1.8.0-RC2'
 }
 
 sourceCompatibility = JavaVersion.VERSION_19
@@ -17,6 +18,7 @@ repositories {
     // See https://docs.gradle.org/current/userguide/declaring_repositories.html
     // for more information about repositories.
     maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
+    mavenCentral()
 }
 
 project.ext.lwjglVersion = "3.3.2-SNAPSHOT"
@@ -74,6 +76,7 @@ dependencies {
     include(implementation("org.lwjgl:lwjgl-shaderc:$lwjglVersion"))
     include(runtimeOnly("org.lwjgl:lwjgl-shaderc:$lwjglVersion:$winNatives"))
     include(runtimeOnly("org.lwjgl:lwjgl-shaderc:$lwjglVersion:$linuxNatives"))
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
 
     //include(implementation("me.modmuss50:voyager-2:2.0.0"))
 }
@@ -118,5 +121,15 @@ publishing {
         // Notice: This block does NOT have the same function as the block in the top level.
         // The repositories here will be used for publishing your artifact, not for
         // retrieving dependencies.
+    }
+}
+compileKotlin {
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
+}
+compileTestKotlin {
+    kotlinOptions {
+        jvmTarget = "1.8"
     }
 }

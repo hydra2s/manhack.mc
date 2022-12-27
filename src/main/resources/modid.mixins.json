@@ -10,7 +10,10 @@
     "blaze3d.TextureUtilsMixin",
     "render.BufferRendererMixin",
     "render.GameRendererMixin",
-    "render.WorldRendererMixin"
+    "render.WorldRendererMixin",
+    "render.BuiltBufferMixin",
+    "render.VertexBufferMixin",
+    "render.VertexFormatMixin"
   ],
   "injectors": {
     "defaultRequire": 1
