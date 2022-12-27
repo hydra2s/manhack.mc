@@ -2,6 +2,8 @@
 
 💔 The new Minecraft rendering mod, based on [Vulkan API](https://registry.khronos.org/vulkan/) (aka. LWJGL 3.3.2) and [Noire.java](https://github.com/hydra2s/noire.java). Also, this is, probably, final project of and in my life (i.e. finale of my 2023 year). 💔
 
+### Will require [Voyager-2](https://www.curseforge.com/minecraft/mc-mods/voyager-2) [(Github)](https://github.com/modmuss50/Voyager-2) and Java 19...
+
 ## TODO features
 
 - 💔 Hacking engine for Minecraft 1.19.3
