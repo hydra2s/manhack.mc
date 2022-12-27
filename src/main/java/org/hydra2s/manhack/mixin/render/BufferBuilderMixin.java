@@ -7,7 +7,7 @@ import org.spongepowered.asm.mixin.Mixin;
 // BIG TODO LIST!
 // - Replace `this.buffer` by mapped memory
 // - Construct with bigger memory `public BufferBuilder(int initialCapacity)`
-// - Add special buffer of Vulkan API
+// - Add special mapped buffer of Vulkan API
 
 @Mixin(BufferBuilder.class)
 public class BufferBuilderMixin {
