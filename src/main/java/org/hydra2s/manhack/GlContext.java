@@ -98,6 +98,10 @@ public class GlContext {
         //
         public ResourceCache() {
             this.defer = new ArrayList<>();
+            this.glVirtualBuffer = resourceCacheMap.push(this);
+            this.offset = memAllocLong(1).put(0, 0L);
+            this.allocId = memAllocPointer(1).put(0, 0L);
+            this.allocCreateInfo = VmaVirtualAllocationCreateInfo.create().alignment(4L);
         }
     };
 
@@ -107,13 +111,12 @@ public class GlContext {
     //
     public static Map<Integer, ResourceImage> resourceImageMap = new HashMap<Integer, ResourceImage>();
 
-    public static ResourceCache dummyCache = new ResourceCache();
-
     // TODO: Virtual OpenGL Buffers support!
     // TODO: Outstanding Array instead of Map!
-    public static PipelineLayoutObj.OutstandingArray<ResourceCache> resourceCacheMap = new PipelineLayoutObj.OutstandingArray<ResourceCache>() {{
-        push(dummyCache);
-    }};
+    public static PipelineLayoutObj.OutstandingArray<ResourceCache> resourceCacheMap = new PipelineLayoutObj.OutstandingArray<ResourceCache>();
+    public static ResourceCache dummyCache = new ResourceCache();
+
+    //
     public static Map<Integer, ResourceCache> boundBuffers = new HashMap<Integer, ResourceCache>() {{
 
     }};
@@ -251,12 +254,8 @@ public class GlContext {
         // TODO: support for typed (entity, indexed, blocks, etc.)
         var mapped = resourceTargetMap.get(0);
         var cache = new ResourceCache();
-        cache.glVirtualBuffer = resourceCacheMap.push(cache);
         cache.glStorageBuffer = mapped.glStorageBuffer;
         cache.mapped = mapped;
-        cache.offset = memAllocLong(1).put(0, 0L);
-        cache.allocId = memAllocPointer(1).put(0, 0L);
-        cache.allocCreateInfo = VmaVirtualAllocationCreateInfo.create();
         return cache.glVirtualBuffer;
     };
 
@@ -271,8 +270,8 @@ public class GlContext {
         }
 
         defaultSize = Math.max(defaultSize, 1024L*16L*3L);
-        //if (cache.size != defaultSize)
-        if (cache.size < defaultSize)
+        if (cache.size != defaultSize)
+        //if (cache.size < defaultSize)
         {
             if (cache.size != 0) {
                 vmaVirtualFree(mapped.vb.get(0), cache.allocId.get(0)); cache.size = 0L;
