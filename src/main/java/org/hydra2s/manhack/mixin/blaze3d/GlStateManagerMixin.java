@@ -6,6 +6,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import org.hydra2s.manhack.GlContext;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.*;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
@@ -15,8 +16,12 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import java.nio.ByteBuffer;
 
 import static org.lwjgl.opengl.GL15.*;
+import static org.lwjgl.opengl.GL42.GL_BUFFER_UPDATE_BARRIER_BIT;
+import static org.lwjgl.opengl.GL42.GL_ELEMENT_ARRAY_BARRIER_BIT;
 import static org.lwjgl.opengl.GL43.glBindVertexBuffer;
+import static org.lwjgl.opengl.GL44.GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT;
 import static org.lwjgl.system.MemoryUtil.memAddress;
+import static org.lwjgl.system.MemoryUtil.memAlloc;
 import static org.lwjgl.util.vma.Vma.vmaVirtualFree;
 import static org.lwjgl.vulkan.VK10.VK_WHOLE_SIZE;
 
@@ -32,9 +37,9 @@ import static org.lwjgl.vulkan.VK10.VK_WHOLE_SIZE;
 // [x] `_drawElements`   // support for virtual buffer with offset
 // [x] `_glGenBuffers`   // virtual pre-allocation
 // [x] `_glBindBuffer`   // virtual binding system
-// [ ] `_glBufferData`   // virtual allocation, support for virtual buffer with offset
-// [ ] `mapBuffer`       // support for virtual buffer with offset
-// [ ] `_glUnmapBuffer`  // support for virtual buffer with offset
+// [x] `_glBufferData`   // virtual allocation, support for virtual buffer with offset
+// [x] `mapBuffer`       // support for virtual buffer with offset
+// [x] `_glUnmapBuffer`  // support for virtual buffer with offset
 
 @Mixin(GlStateManager.class)
 public class GlStateManagerMixin {
@@ -45,29 +50,19 @@ public class GlStateManagerMixin {
      */
     @Overwrite
     public static void _vertexAttribPointer(int index, int size, int type, boolean normalized, int stride, long pointer) throws Exception {
+        RenderSystem.assertOnRenderThread();
         var cache = GlContext.boundBuffers.get(GL_ARRAY_BUFFER);
-        //if (cache.size == 0) {
-            //System.out.println("Vertex Binding Failed: " + "Isn't allocated, and have no correct offset.");
-            //throw new Exception("Vertex Binding Failed: " + "Isn't allocated, and have no correct offset.");
-        //}
 
         // TODO: replace a VAO binding stack!
         // TODO: deferred vertex pointer system!
-        RenderSystem.assertOnRenderThread();
-        if (cache == null || cache.glStorageBuffer == 0) {
-            GL20.glVertexAttribPointer(index, size, type, normalized, stride, pointer);
-        } else {
-            //GL20.glVertexAttribPointer(index, size, type, normalized, stride, pointer + cache.offset.get(0));
-            var vBinding = index;
-            GL43.glVertexAttribBinding(index, vBinding);
-            GL43.glVertexAttribFormat(index, size, type, normalized, (int) pointer);
-            if (cache.size == 0) {
-                cache.defer.add(() -> {
-                    GL43.glBindVertexBuffer(vBinding, cache.glStorageBuffer, cache.offset.get(0), stride);
-                });
-            } else {
-                GL43.glBindVertexBuffer(vBinding, cache.glStorageBuffer, cache.offset.get(0), stride);
-            }
+        var vBinding = 0;//index;
+        cache.stride = stride;
+        GL43.glVertexAttribBinding(index, cache.bindingIndex = vBinding);
+        GL43.glVertexAttribFormat(index, size, type, normalized, (int) pointer);
+
+        //
+        if (cache.target == GL_ARRAY_BUFFER && cache.stride > 0 && cache.size > 0) {
+            glBindVertexBuffer(cache.bindingIndex, cache.glStorageBuffer, cache.offset.get(0), cache.stride);
         }
     }
 
@@ -77,29 +72,19 @@ public class GlStateManagerMixin {
      */
     @Overwrite
     public static void _vertexAttribIPointer(int index, int size, int type, int stride, long pointer) throws Exception {
+        RenderSystem.assertOnRenderThread();
         var cache = GlContext.boundBuffers.get(GL_ARRAY_BUFFER);
-        //if (cache.size == 0) {
-            //System.out.println("Vertex Binding Failed: " + "Isn't allocated, and have no correct offset.");
-            //throw new Exception("Vertex Binding Failed: " + "Isn't allocated, and have no correct offset.");
-        //}
 
         // TODO: replace a VAO binding stack!
         // TODO: deferred vertex pointer system!
-        RenderSystem.assertOnRenderThread();
-        if (cache == null || cache.glStorageBuffer == 0) {
-            GL30.glVertexAttribIPointer(index, size, type, stride, pointer);
-        } else {
-            //GL30.glVertexAttribIPointer(index, size, type, stride, pointer + cache.offset.get(0));
-            var vBinding = index;
-            GL43.glVertexAttribBinding(index, vBinding);
-            GL43.glVertexAttribIFormat(index, size, type, (int) pointer);
-            if (cache.size == 0) {
-                cache.defer.add(() -> {
-                    GL43.glBindVertexBuffer(vBinding, cache.glStorageBuffer, cache.offset.get(0), stride);
-                });
-            } else {
-                GL43.glBindVertexBuffer(vBinding, cache.glStorageBuffer, cache.offset.get(0), stride);
-            }
+        var vBinding = 0;
+        cache.stride = stride;
+        GL43.glVertexAttribBinding(index, cache.bindingIndex = vBinding);
+        GL43.glVertexAttribIFormat(index, size, type, (int) pointer);
+
+        //
+        if (cache.target == GL_ARRAY_BUFFER && cache.stride > 0 && cache.size > 0) {
+            glBindVertexBuffer(cache.bindingIndex, cache.glStorageBuffer, cache.offset.get(0), cache.stride);
         }
     }
 
@@ -111,10 +96,6 @@ public class GlStateManagerMixin {
     public static void _drawElements(int mode, int count, int type, long indices) throws Exception {
         RenderSystem.assertOnRenderThread();
         var cache = GlContext.boundBuffers.get(GL_ELEMENT_ARRAY_BUFFER);
-        if (cache.size == 0) {
-            System.out.println("Index Binding Failed: " + "Isn't allocated, and have no correct offset.");
-            throw new Exception("Index Binding Failed: " + "Isn't allocated, and have no correct offset.");
-        }
 
         // TODO: workaround by shaders!!!
         /*
@@ -136,13 +117,9 @@ public class GlStateManagerMixin {
      * @reason
      */
     @Overwrite(remap = false)
-    public static int _glGenBuffers() {
+    public static int _glGenBuffers() throws Exception {
         RenderSystem.assertOnRenderThreadOrInit();
-        try {
-            return GlContext.glCreateBuffer();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        return GlContext.glCreateBuffer();
     }
 
     /**
@@ -160,13 +137,9 @@ public class GlStateManagerMixin {
      * @reason
      */
     @Overwrite
-    public static void _glBufferData(int target, ByteBuffer data, int usage) {
+    public static void _glBufferData(int target, ByteBuffer data, int usage) throws Exception {
         RenderSystem.assertOnRenderThreadOrInit();
-        try {
-            GlContext.glBufferData(target, data, usage);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        GlContext.glBufferData(target, data, usage);
     }
 
     /**
@@ -174,38 +147,55 @@ public class GlStateManagerMixin {
      * @reason
      */
     @Overwrite
-    public static void _glBufferData(int target, long size, int usage) {
+    public static void _glBufferData(int target, long size, int usage) throws Exception {
         RenderSystem.assertOnRenderThreadOrInit();
-        try {
-            GlContext.glBufferData(target, size, usage);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        GlContext.glBufferData(target, size, usage);
     }
 
     /**
      * @author
      * @reason
      */
+
+    // TODO: needs Vulkan API synchronization!!!
     @Nullable @Overwrite
     public static ByteBuffer mapBuffer(int target, int access) {
         RenderSystem.assertOnRenderThreadOrInit();
         //return GL15.glMapBuffer(target, access);
 
         var cache = GlContext.boundBuffers.get(target);
-        return cache.map(cache.allocCreateInfo.size(), 0L);
+
+        // required for map ops
+        //GL45.glMemoryBarrier(GL_ELEMENT_ARRAY_BARRIER_BIT|GL_BUFFER_UPDATE_BARRIER_BIT|GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT);
+        if (cache.allocatedMemory == null) {
+            System.out.println("Used Vulkan Mapped Memory, Synchronization May Required!");
+            return (cache.allocatedMemory = cache.map(cache.allocCreateInfo.size(), 0L));
+        }
+        return cache.allocatedMemory;
+        //return (cache.allocatedMemory = memAlloc((int) cache.allocCreateInfo.size()));
     }
 
     /**
      * @author
      * @reason
      */
+
+    // TODO: needs Vulkan API synchronization!!!
     @Overwrite
     public static void _glUnmapBuffer(int target) {
         RenderSystem.assertOnRenderThreadOrInit();
 
         var cache = GlContext.boundBuffers.get(target);
-        cache.unmap();
+        if (cache.allocatedMemory != null) {
+            //cache.unmap();
+
+            // required for map ops
+            //GL45.glMemoryBarrier(GL_ELEMENT_ARRAY_BARRIER_BIT|GL_BUFFER_UPDATE_BARRIER_BIT|GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT);
+
+            //
+            //GL45.glNamedBufferSubData(cache.glStorageBuffer, cache.offset.get(0), cache.allocatedMemory);
+            //cache.allocatedMemory = null;
+        }
     }
 
     //
@@ -216,7 +206,7 @@ public class GlStateManagerMixin {
      * @reason
      */
     @Overwrite
-    public static void _glDeleteBuffers(int glVirtualBuffer) {
+    public static void _glDeleteBuffers(int glVirtualBuffer) throws Exception {
         RenderSystem.assertOnRenderThread();
         if (ON_LINUX) {
             _glBindBuffer(GlConst.GL_ARRAY_BUFFER, glVirtualBuffer);
@@ -228,6 +218,7 @@ public class GlStateManagerMixin {
         GlContext.ResourceCache resource = GlContext.resourceCacheMap.get(glVirtualBuffer);
         if (resource != null) {
             vmaVirtualFree(resource.mapped.vb.get(0), resource.allocId.get(0));
+            resource.size = 0L; resource.offset.put(0, 0L);
             GlContext.resourceCacheMap.removeMem(resource);
         }
         //GL15.glDeleteBuffers(buffer);

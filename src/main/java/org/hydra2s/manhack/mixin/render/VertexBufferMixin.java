@@ -32,14 +32,5 @@ import static org.lwjgl.opengl.GL30C.glBindBufferRange;
 
 @Mixin(VertexBuffer.class)
 public class VertexBufferMixin {
-
-    @Shadow private int vertexBufferId;
-    @Shadow private int indexBufferId;
-    @Shadow private int vertexArrayId;
-    @Shadow @Nullable private VertexFormat vertexFormat;
-    @Shadow @Nullable private RenderSystem.ShapeIndexBuffer sharedSequentialIndexBuffer;
-    @Shadow private VertexFormat.IndexType indexType;
-    @Shadow private int indexCount;
-    @Shadow private VertexFormat.DrawMode drawMode;
     
 }

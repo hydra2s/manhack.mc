@@ -25,13 +25,4 @@ import static org.lwjgl.vulkan.VK10.VK_WHOLE_SIZE;
 
 @Mixin(RenderSystem.ShapeIndexBuffer.class)
 public class ShapeIndexBufferMixin implements ShapeIndexBufferInterface {
-    @Shadow private int vertexCountInTriangulated;
-    @Shadow private VertexFormat.IndexType indexType;
-    @Shadow private int vertexCountInShape;
-    @Shadow private int size;
-
-    @Unique public GlContext.ResourceCache vk;
-    @Shadow private int id;
-    @Unique public ByteBuffer preAllocated;
-
 }
