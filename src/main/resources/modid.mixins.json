@@ -8,6 +8,7 @@
   "client": [
     "blaze3d.RenderSystemMixin",
     "blaze3d.TextureUtilsMixin",
+    "blaze3d.ShapeIndexBufferMixin",
     "render.BufferRendererMixin",
     "render.GameRendererMixin",
     "render.WorldRendererMixin",

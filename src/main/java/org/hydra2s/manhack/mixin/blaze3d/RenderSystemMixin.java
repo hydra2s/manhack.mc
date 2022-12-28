@@ -24,15 +24,9 @@ import static org.lwjgl.opengl.GL11.GL_TEXTURE_2D;
 @Mixin(RenderSystem.class)
 public class RenderSystemMixin {
 
-
-
     @Inject(method = "initRenderer(IZ)V", at=@At("TAIL"))
     private static void mInitRenderer(int debugVerbosity, boolean debugSync, CallbackInfo ci) throws IOException {
         GlContext.initialize();
     }
-
-
-
-
 
 }

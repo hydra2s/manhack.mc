@@ -32,6 +32,7 @@ import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL15.glBufferSubData;
 import static org.lwjgl.opengl.GL30.GL_R8;
 import static org.lwjgl.opengl.GL30.GL_RG8;
+import static org.lwjgl.system.MemoryUtil.memCopy;
 import static org.lwjgl.vulkan.KHRAccelerationStructure.VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
 import static org.lwjgl.vulkan.VK10.*;
 
@@ -171,31 +172,12 @@ public class GlContext {
         };
     };
 
-    public static int glCreateBuffer(int glBuffer[], ResourceBuffer resource) {
-        if (glBuffer != null && glBuffer[0] == 0) {GL45.glCreateBuffers(glBuffer);}
-
-        //
-        glImportMemoryWin32HandleEXT(resource.glMemory = glCreateMemoryObjectsEXT(), resource.bufferCreateInfo.size, GL_HANDLE_TYPE_OPAQUE_WIN32_EXT, resource.obj.getWin32Handle().get());
-        glNamedBufferStorageMemEXT(glBuffer[0], resource.bufferCreateInfo.size, resource.glMemory, resource.obj.memoryOffset);
-
-        //
-        GlContext.resourceBufferMap.put(glBuffer[0], resource);
-        return glBuffer[0];
-    }
-
-    //
-    public static int glCreateBuffer(ResourceBuffer resource) {
-        return glCreateBuffer(new int[]{0}, resource);
-    }
-
     //
     public static ResourceBuffer vkCreateBuffer(long defaultSize) {
-        ResourceBuffer resource = new ResourceBuffer();
-
-        //
         var _pipelineLayout = rendererObj.pipelineLayout;
         var _memoryAllocator = rendererObj.memoryAllocator;
-        resource.obj = new MemoryAllocationObj.BufferObj(rendererObj.logicalDevice.getHandle(), new MemoryAllocationCInfo.BufferCInfo(){{
+        ResourceBuffer resource = new ResourceBuffer();
+        resource.obj = new MemoryAllocationObj.BufferObj(rendererObj.logicalDevice.getHandle(), resource.bufferCreateInfo = new MemoryAllocationCInfo.BufferCInfo(){{
             isHost = true;
             isDevice = true;
             size = defaultSize;
@@ -207,29 +189,10 @@ public class GlContext {
         return resource;
     };
 
-    //
-    public static int glCreateBuffer(int target, long defaultSize, int glBuffer[]) {
-        ResourceBuffer resource = new ResourceBuffer();
-
-        //
-        var _pipelineLayout = rendererObj.pipelineLayout;
-        var _memoryAllocator = rendererObj.memoryAllocator;
-        resource.obj = new MemoryAllocationObj.BufferObj(rendererObj.logicalDevice.getHandle(), new MemoryAllocationCInfo.BufferCInfo(){{
-            isHost = true;
-            isDevice = true;
-            size = defaultSize;
-            usage = VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-            memoryAllocator = _memoryAllocator.getHandle().get();
-        }});
-
-        //
-        if (glBuffer != null && glBuffer[0] == 0) {
-            GL45.glCreateBuffers(glBuffer);
-        }
-
-        //
-        glImportMemoryWin32HandleEXT(resource.glMemory = glCreateMemoryObjectsEXT(), defaultSize, GL_HANDLE_TYPE_OPAQUE_WIN32_EXT, resource.obj.getWin32Handle().get());
-        glNamedBufferStorageMemEXT(glBuffer[0], defaultSize, resource.glMemory, resource.obj.memoryOffset);
+    public static int glCreateBuffer(int glBuffer[], ResourceBuffer resource) {
+        if (glBuffer != null && glBuffer[0] == 0) {GL45.glCreateBuffers(glBuffer);}
+        glImportMemoryWin32HandleEXT(resource.glMemory = glCreateMemoryObjectsEXT(), resource.bufferCreateInfo.size, GL_HANDLE_TYPE_OPAQUE_WIN32_EXT, resource.obj.getWin32Handle().get());
+        glNamedBufferStorageMemEXT(glBuffer[0], resource.bufferCreateInfo.size, resource.glMemory, resource.obj.memoryOffset);
 
         //
         GlContext.resourceBufferMap.put(glBuffer[0], resource);
@@ -237,22 +200,29 @@ public class GlContext {
     };
 
     //
+    public static int glCreateBuffer(ResourceBuffer resource) {
+        return glCreateBuffer(new int[]{0}, resource);
+    }
+    public static int glCreateBuffer(int target, long defaultSize, int glBuffer[]) {
+        glCreateBuffer(glBuffer, vkCreateBuffer(defaultSize));
+        return glBuffer[0];
+    };
     public static int glCreateBuffer(int target, long defaultSize){
-        int glBuffer[] = {0};
-        return glCreateBuffer(target, defaultSize, glBuffer);
+        int glBuffer[] = {0}; return glCreateBuffer(target, defaultSize, glBuffer);
     }
 
     //
-    public static void glBufferData(long defaultSize, int target, ByteBuffer data, int usage) {
+    public static void glBufferData(int target, ByteBuffer data, int usage, long defaultSize) {
         if (target == GL_ARRAY_BUFFER || target == GL_ELEMENT_ARRAY_BUFFER) {
             int id = glGetInteger(target == GL_ARRAY_BUFFER ? GL_ARRAY_BUFFER_BINDING : GL_ELEMENT_ARRAY_BUFFER_BINDING);
             if (GlContext.resourceBufferMap.get(id) == null) {
-                glCreateBuffer(target, Math.max(defaultSize, data.capacity()), new int[]{id});
+                glCreateBuffer(target, Math.max(data.capacity(), defaultSize), new int[]{id});
             }
 
-            // BUT needs also Math.min(defaultSize, data.limit())
-            // TODO: replace by Vulkan uploading system!
-            glBufferSubData(target, 0, data);
+            //
+            var resource = GlContext.resourceBufferMap.get(id);
+            memCopy(data, resource.obj.map(data.capacity(), 0));
+            resource.obj.unmap();
         } else {
             GL20.glBufferData(target, data, usage);
         };

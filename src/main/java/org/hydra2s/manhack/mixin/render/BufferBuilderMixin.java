@@ -25,7 +25,6 @@ import static org.lwjgl.vulkan.VK10.VK_WHOLE_SIZE;
 @Mixin(BufferBuilder.class)
 public class BufferBuilderMixin implements BufferBuilderInterface {
 
-
     /**
      * @author
      * @reason Unavailable for Vulkan API

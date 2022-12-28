@@ -15,6 +15,8 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 
 import java.nio.ByteBuffer;
 
+import static org.lwjgl.vulkan.VK10.VK_WHOLE_SIZE;
+
 @Mixin(RenderSystem.ShapeIndexBuffer.class)
 public class ShapeIndexBufferMixin implements ShapeIndexBufferInterface {
     @Shadow private int vertexCountInTriangulated;
@@ -27,52 +29,35 @@ public class ShapeIndexBufferMixin implements ShapeIndexBufferInterface {
     @Shadow private int id;
     @Unique ByteBuffer preAllocated;
 
-
-
     // allocate vulkan buffer instead
     // TODO: vulkan memory mapping
     // TODO: unbound data for built buffer memory
     // TODO: unbound from OpenGL API
     @Redirect(method="grow(I)V", at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/platform/GlStateManager;_glBufferData(IJI)V"))
     private void onBufferData(int target, long data, int usage) {
-        // allocate 128Mb
-        //if (this.vk == null || this.id == 0) {
-            // TODO: remove from GL
-            //this.id = GlContext.glCreateBuffer(new int[]{this.id}, this.vk = GlContext.vkCreateBuffer(Math.max(data, 1024 * 1024 * 128)));
-        //}
-
-        if (this.preAllocated == null) {
-            this.preAllocated = MemoryUtil.memAlloc((int)data);
+        if (this.vk == null || this.id == 0) {
+            this.id = GlContext.glCreateBuffer(new int[]{this.id}, this.vk = GlContext.vkCreateBuffer(Math.max(data, 1024 * 1024 * 3 * 128)));
         }
     }
 
-    // return pre-allocated memory
-    @Redirect(method="grow(I)V", at = @At(value = "INVOKE_ASSIGN", target = "Lcom/mojang/blaze3d/platform/GlStateManager;mapBuffer(II)Ljava/nio/ByteBuffer;"))
+    // remap mapping...
+    @Redirect(method="grow(I)V", at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/platform/GlStateManager;mapBuffer(II)Ljava/nio/ByteBuffer;"))
     private ByteBuffer onMapData(int target, int access) {
-        return this.preAllocated;
+        return this.vk.obj.map(VK_WHOLE_SIZE, 0);
     }
 
-    // stub for avoid GL error
+    // remap unmapping...
     @Redirect(method="grow(I)V", at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/platform/GlStateManager;_glUnmapBuffer(I)V"))
     private void onUnmapData(int target, int access) {
-        
+        this.vk.obj.unmap();
     }
-
-    /**
-     * @author
-     * @reason
-     */
-    @Overwrite
-    public boolean isLargeEnough(int capacity) {
-        return false;
-    }
-
-    @Override
-    public ByteBuffer getPreAllocated() {
-        var preAllocated = this.preAllocated; this.preAllocated = null; return preAllocated;
-    };
 
     @Shadow private void grow(int requiredSize) {}
     @Shadow private IntConsumer getIndexConsumer(ByteBuffer byteBuffer) { return null;}
+
+    @Override
+    public ByteBuffer getPreAllocated() {
+        return null;
+    }
     //@Shadow private boolean isLargeEnough(int requiredSize) { return false; }
 }

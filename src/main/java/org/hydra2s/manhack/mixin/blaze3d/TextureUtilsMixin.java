@@ -17,7 +17,7 @@ public class TextureUtilsMixin {
      * @author
      * @reason
      */
-    /*@Overwrite
+    @Overwrite
     public static void prepareImage(NativeImage.InternalFormat internalFormat, int id, int maxLevel, int width, int height) {
         RenderSystem.assertOnRenderThreadOrInit();
         GlStateManager._bindTexture(id);
@@ -32,6 +32,6 @@ public class TextureUtilsMixin {
 
         //
         GlContext.glPrepareImage(internalFormat, id, maxLevel, width, height);
-    };*/
+    };
 
 }
