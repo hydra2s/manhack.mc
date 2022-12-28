@@ -308,6 +308,7 @@ public class GlContext {
             if (cache != null && cache.glStorageBuffer != 0) {
                 boundBuffers.put(target, cache); // TODO: unbound memory
                 GL20.glBindBuffer(target, cache.glStorageBuffer);
+                cache.defer.clear();
             }
         }
     }
