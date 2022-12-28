@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 
 import static org.lwjgl.opengl.GL11.GL_TEXTURE_2D;
+import static org.lwjgl.util.vma.Vma.vmaVirtualFree;
 
 // TODO: unbound indexed memory
 @Mixin(RenderSystem.class)
@@ -39,8 +40,12 @@ public class RenderSystemMixin {
     // TODO: deallocate buffer
     @Inject(method="glDeleteBuffers(I)V", at=@At("HEAD"))
     private static void mDeleteBuffer(int buffer, CallbackInfo ci) {
-        GlContext.ResourceBuffer resource = GlContext.resourceBufferMap.get(buffer);
-        if (resource != null) { GlContext.resourceBufferMap.remove(buffer); }
+        GlContext.ResourceCache resource = GlContext.resourceCacheMap.get(buffer);
+        // free virtual memory
+        if (resource != null) {
+            vmaVirtualFree(resource.mapped.vb.get(0), resource.allocInfo.address());
+            GlContext.resourceCacheMap.remove(buffer);
+        }
     };
 
 }

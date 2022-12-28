@@ -25,7 +25,7 @@ public class ShapeIndexBufferMixin implements ShapeIndexBufferInterface {
     @Shadow private int vertexCountInShape;
     @Shadow private int size;
 
-    @Unique public GlContext.ResourceBuffer vk;
+    @Unique public GlContext.ResourceCache vk;
     @Shadow private int id;
     @Unique ByteBuffer preAllocated;
 
@@ -34,22 +34,21 @@ public class ShapeIndexBufferMixin implements ShapeIndexBufferInterface {
     // TODO: unbound data for built buffer memory
     // TODO: unbound from OpenGL API
     @Redirect(method="grow(I)V", at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/platform/GlStateManager;_glBufferData(IJI)V"))
-    private void onBufferData(int target, long data, int usage) {
-        if (this.vk == null || this.id == 0) {
-            this.id = GlContext.glCreateBuffer(new int[]{this.id}, this.vk = GlContext.vkCreateBuffer(Math.max(data, 1024 * 1024 * 3 * 128)));
-        }
+    private void onBufferData(int target, long data, int usage) throws Exception {
+        GlContext.glBufferData(target, data, usage);
+        this.vk = GlContext.resourceCacheMap.get(this.id);
     }
 
     // remap mapping...
     @Redirect(method="grow(I)V", at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/platform/GlStateManager;mapBuffer(II)Ljava/nio/ByteBuffer;"))
     private ByteBuffer onMapData(int target, int access) {
-        return this.vk.obj.map(VK_WHOLE_SIZE, 0);
+        return this.vk.map(VK_WHOLE_SIZE, 0L);
     }
 
     // remap unmapping...
     @Redirect(method="grow(I)V", at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/platform/GlStateManager;_glUnmapBuffer(I)V"))
     private void onUnmapData(int target, int access) {
-        this.vk.obj.unmap();
+        this.vk.unmap();
     }
 
     @Shadow private void grow(int requiredSize) {}
