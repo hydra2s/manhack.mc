@@ -14,9 +14,9 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 
 import java.nio.ByteBuffer;
 
-import static org.lwjgl.opengl.GL15.GL_ARRAY_BUFFER;
-import static org.lwjgl.opengl.GL15.GL_ELEMENT_ARRAY_BUFFER;
+import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL43.glBindVertexBuffer;
+import static org.lwjgl.system.MemoryUtil.memAddress;
 import static org.lwjgl.util.vma.Vma.vmaVirtualFree;
 import static org.lwjgl.vulkan.VK10.VK_WHOLE_SIZE;
 
@@ -83,10 +83,18 @@ public class GlStateManagerMixin {
      */
     @Overwrite
     public static void _drawElements(int mode, int count, int type, long indices) {
+        RenderSystem.assertOnRenderThread();
         var cache = GlContext.boundBuffers.get(GL_ELEMENT_ARRAY_BUFFER);
 
-        RenderSystem.assertOnRenderThread();
-        GL11.glDrawElements(mode, count, type, indices + cache.offset.get(0));
+        // TODO: workaround by shaders!
+        // Use TEMP buffer for binding element arrays
+        int EL = GL45.glCreateBuffers();
+        GL45.glNamedBufferData(EL, cache.allocCreateInfo.size(), GL_DYNAMIC_DRAW);
+        GL45.glCopyNamedBufferSubData(cache.glStorageBuffer, EL, cache.offset.get(0), 0, cache.allocCreateInfo.size());
+        GL20.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EL);
+        GL11.glDrawElements(mode, count, type, indices);
+        GL20.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cache.glStorageBuffer);
+        GL20.glDeleteBuffers(EL);
     }
 
     /**
@@ -151,7 +159,7 @@ public class GlStateManagerMixin {
         //return GL15.glMapBuffer(target, access);
 
         var cache = GlContext.boundBuffers.get(target);
-        return cache.map(VK_WHOLE_SIZE, 0L);
+        return cache.map(cache.allocCreateInfo.size(), 0L);
     }
 
     /**

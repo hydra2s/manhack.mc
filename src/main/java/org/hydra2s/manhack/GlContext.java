@@ -238,11 +238,10 @@ public class GlContext {
         }
 
         //
-        var glBuffer = new int[]{0};
-        //GL45.glCreateBuffers(glBuffer);
-        GL20.glGenBuffers(glBuffer);
-        glNamedBufferStorageMemEXT(glBuffer[0], resource.bufferCreateInfo.size, resource.glMemory, resource.obj.memoryOffset);
-        resource.glStorageBuffer = glBuffer[0];
+        int glBuffer = GL45.glCreateBuffers();
+        //int glBuffer = GL20.glGenBuffers();
+        glNamedBufferStorageMemEXT(glBuffer, resource.bufferCreateInfo.size, resource.glMemory, resource.obj.memoryOffset);
+        resource.glStorageBuffer = glBuffer;
 
         // TODO: bind with GL object!
         //GlContext.resourceCacheMap.put(glBuffer[0], resource);
@@ -252,8 +251,12 @@ public class GlContext {
 
     //
     public static int glCreateBuffer() throws Exception {
+        // TODO: support for typed (entity, indexed, blocks, etc.)
+        var mapped = resourceTargetMap.get(0);
         var cache = new ResourceCache();
         cache.glVirtualBuffer = resourceCacheMap.push(cache);
+        cache.glStorageBuffer = mapped.glStorageBuffer;
+        cache.mapped = mapped;
         return cache.glVirtualBuffer;
     };
 
@@ -281,9 +284,6 @@ public class GlContext {
                 cache.glStorageBuffer = mapped.glStorageBuffer;
                 cache.mapped = mapped;
                 cache.size = defaultSize;
-                if (target != 0) {
-                    GL20.glBindBuffer(target, cache.glStorageBuffer);
-                }
             }
         }
 
@@ -301,9 +301,9 @@ public class GlContext {
         boundBuffers.remove(target);
         if (glVirtual != 0) {
             var cache = resourceCacheMap.get(glVirtual);
-            if (cache != null) {
+            if (cache != null && cache.glStorageBuffer != 0) {
                 boundBuffers.put(target, cache); // TODO: unbound memory
-                if (cache.glStorageBuffer != 0) GL20.glBindBuffer(target, cache.glStorageBuffer);
+                GL20.glBindBuffer(target, cache.glStorageBuffer);
             }
         }
     }
