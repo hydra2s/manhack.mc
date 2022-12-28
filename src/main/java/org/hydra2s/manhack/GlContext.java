@@ -9,6 +9,7 @@ import org.hydra2s.noire.descriptors.MemoryAllocationCInfo;
 import org.hydra2s.noire.descriptors.RendererCInfo;
 import org.hydra2s.noire.objects.MemoryAllocationObj;
 import org.hydra2s.noire.objects.MinecraftRendererObj;
+import org.hydra2s.noire.objects.PipelineLayoutObj;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.opengl.GL20;
 import org.lwjgl.opengl.GL45;
@@ -37,7 +38,6 @@ import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL15.glBufferSubData;
 import static org.lwjgl.opengl.GL30.GL_R8;
 import static org.lwjgl.opengl.GL30.GL_RG8;
-import static org.lwjgl.opengl.GL43.glInvalidateBufferData;
 import static org.lwjgl.opengl.GL45.glNamedBufferSubData;
 import static org.lwjgl.system.MemoryUtil.*;
 import static org.lwjgl.util.vma.Vma.*;
@@ -60,6 +60,7 @@ public class GlContext {
     //
     static public class ResourceBuffer {
         public int glMemory = 0;
+        public int glStorageBuffer = 0;
         public MemoryAllocationObj.BufferObj obj;
         public MemoryAllocationCInfo.BufferCInfo bufferCreateInfo;
         public PointerBuffer vb;
@@ -79,13 +80,12 @@ public class GlContext {
         public LongBuffer offset = memAllocLong(1).put(0, 0L);
 
         //
-        public VmaVirtualAllocationInfo allocInfo;
-        public VmaVirtualAllocationCreateInfo allocCreateInfo;
-        public ResourceBuffer mapped;
-        public PointerBuffer allocId;
+        //public VmaVirtualAllocationInfo allocInfo;
+        public VmaVirtualAllocationCreateInfo allocCreateInfo = null;
+        public ResourceBuffer mapped = null;
+        public PointerBuffer allocId = null;
 
         // TODO: Virtual OpenGL Memory!
-        public int glMemory = 0;
         public int glVirtualBuffer = 0;
         public int glStorageBuffer = 0;
 
@@ -99,10 +99,8 @@ public class GlContext {
         }
 
         //
-        public ResourceCache(int glStorageBuffer, long defaultSize, LongBuffer offset) {
-            this.offset = offset;
-            this.size = defaultSize;
-            this.glStorageBuffer = glStorageBuffer;
+        public ResourceCache() {
+
         }
     };
 
@@ -112,9 +110,17 @@ public class GlContext {
     //
     public static Map<Integer, ResourceImage> resourceImageMap = new HashMap<Integer, ResourceImage>();
 
+    public static ResourceCache dummyCache = new ResourceCache();
+
     // TODO: Virtual OpenGL Buffers support!
     // TODO: Outstanding Array instead of Map!
-    public static Map<Integer, ResourceCache> resourceCacheMap = new HashMap<Integer, ResourceCache>();
+    public static PipelineLayoutObj.OutstandingArray<ResourceCache> resourceCacheMap = new PipelineLayoutObj.OutstandingArray<ResourceCache>() {{
+        push(dummyCache);
+    }};
+    public static Map<Integer, ResourceCache> boundBuffers = new HashMap<Integer, ResourceCache>() {{
+
+    }};
+
 
     //
     public static boolean hasIndexBuffer = false;
@@ -129,7 +135,7 @@ public class GlContext {
 
         });
         resourceTargetMap = new HashMap<Integer, ResourceBuffer>(){{
-            put(0, vkCreateBuffer(1024L * 1024L * 1024L * 1L));
+            put(0, vkCreateBuffer(1024L * 1024L * 256L));
         }};
     };
 
@@ -224,15 +230,19 @@ public class GlContext {
             usage = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
             memoryAllocator = _memoryAllocator.getHandle().get();
         }});
-        vmaCreateVirtualBlock(resource.vbInfo.size(defaultSize), resource.vb = memAllocPointer(1));
+
+        //
+        vmaCreateVirtualBlock(resource.vbInfo.size(resource.bufferCreateInfo.size), resource.vb = memAllocPointer(1));
         if (resource.glMemory == 0) {
-            glImportMemoryWin32HandleEXT(resource.glMemory = glCreateMemoryObjectsEXT(), resource.bufferCreateInfo.size, GL_HANDLE_TYPE_OPAQUE_WIN32_EXT, resource.obj.getWin32Handle().get(0));
+            glImportMemoryWin32HandleEXT(resource.glMemory = glCreateMemoryObjectsEXT(), resource.bufferCreateInfo.size + resource.obj.memoryOffset, GL_HANDLE_TYPE_OPAQUE_WIN32_EXT, resource.obj.getWin32Handle().get(0));
         }
 
         //
         var glBuffer = new int[]{0};
-        GL45.glCreateBuffers(glBuffer);
-        glNamedBufferStorageMemEXT(glBuffer[0], defaultSize, resource.glMemory, resource.obj.memoryOffset);
+        //GL45.glCreateBuffers(glBuffer);
+        GL20.glGenBuffers(glBuffer);
+        glNamedBufferStorageMemEXT(glBuffer[0], resource.bufferCreateInfo.size, resource.glMemory, resource.obj.memoryOffset);
+        resource.glStorageBuffer = glBuffer[0];
 
         // TODO: bind with GL object!
         //GlContext.resourceCacheMap.put(glBuffer[0], resource);
@@ -241,106 +251,72 @@ public class GlContext {
     };
 
     //
-    public static int glCreateBuffer(int target, long defaultSize, int glBuffer[]) throws Exception {
+    public static int glCreateBuffer() throws Exception {
+        var cache = new ResourceCache();
+        cache.glVirtualBuffer = resourceCacheMap.push(cache);
+        return cache.glVirtualBuffer;
+    };
+
+    //
+    public static ResourceCache glAllocateMemory(ResourceCache cache, int target, long defaultSize, int usage) throws Exception {
         // TODO: support for typed (entity, indexed, blocks, etc.)
         var mapped = resourceTargetMap.get(0);
-        if (mapped.glMemory == 0) {
-            glImportMemoryWin32HandleEXT(mapped.glMemory = glCreateMemoryObjectsEXT(), mapped.bufferCreateInfo.size, GL_HANDLE_TYPE_OPAQUE_WIN32_EXT, mapped.obj.getWin32Handle().get(0));
+
+        if (cache == null) {
+            System.out.println("Allocation Failed: " + "Allocation Not Found!");
+            throw new Exception("Allocation Failed: " + "Allocation Not Found!");
         }
 
-        //
-        if (glBuffer != null && glBuffer[0] == 0) {
-            GL45.glCreateBuffers(glBuffer);
-            //glBindBuffer(target, glBuffer[0]);
-        };
-
-        // TODO: needs replace OpenGL memory stack for immutable support
-        // Create a new memory
-        /*
-        if (!GlContext.resourceCacheMap.containsKey(glBuffer[0])) {
-            //
-            defaultSize = Math.max(defaultSize, 1024L * 1024L * 16L * 3L);
+        if (cache.size != defaultSize) {
+            if (cache.size != 0) {
+                vmaVirtualFree(mapped.vb.get(0), cache.allocId.get(0)); cache.size = 0L;
+            }
 
             //
-            var cache = new ResourceCache(mapped.obj, glBuffer[0], defaultSize, memAllocLong(1).put(0, 0L));
-            cache.allocId = memAllocPointer(1).put(0, 0L);
-            cache.allocCreateInfo = VmaVirtualAllocationCreateInfo.create().size(defaultSize);
-            cache.mapped = mapped;
-
-            //
-            int res = vmaVirtualAllocate(mapped.vb.get(0), cache.allocCreateInfo, cache.allocId, cache.offset);
+            int res = vmaVirtualAllocate(mapped.vb.get(0), cache.allocCreateInfo = VmaVirtualAllocationCreateInfo.create().size(defaultSize), cache.allocId = memAllocPointer(1).put(0, 0L), cache.offset = memAllocLong(1).put(0, 0L));
             if (res != VK_SUCCESS) {
                 System.out.println("Allocation Failed: " + res);
                 throw new Exception("Allocation Failed: " + res);
-            }
-
-            if (cache.glMemory == 0) {
-                cache.glMemory = mapped.glMemory;//glImportMemoryWin32HandleEXT(cache.glMemory = glCreateMemoryObjectsEXT(), mapped.bufferCreateInfo.size, GL_HANDLE_TYPE_OPAQUE_WIN32_EXT, mapped.obj.getWin32Handle().get(0));
-            }
-
-            long cOffset = cache.offset.get(0);
-            long mOffset = mapped.obj.memoryOffset;
-            glNamedBufferStorageMemEXT(glBuffer[0], defaultSize, cache.glMemory, mOffset + cOffset);
-            GlContext.resourceCacheMap.put(glBuffer[0], cache);
-        } // UNSUPPORTED BY OPENGL!
-        else {
-            // "Grow" memory
-            var cache = resourceCacheMap.get(glBuffer[0]);
-            if (cache.size != defaultSize) {
-                vmaVirtualFree(mapped.vb.get(0), cache.allocId.get(0));
-
-                //
+            } else {
+                cache.glStorageBuffer = mapped.glStorageBuffer;
+                cache.mapped = mapped;
                 cache.size = defaultSize;
-                cache.allocInfo = VmaVirtualAllocationInfo.create();
-                cache.allocCreateInfo = VmaVirtualAllocationCreateInfo.create().size(defaultSize);
-
-                //
-                int res = vmaVirtualAllocate(mapped.vb.get(0), cache.allocCreateInfo, cache.allocId, cache.offset);
-                if (res != VK_SUCCESS) {
-                    System.out.println("Allocation Failed: " + res);
-                    throw new Exception("Allocation Failed: " + res);
+                if (target != 0) {
+                    GL20.glBindBuffer(target, cache.glStorageBuffer);
                 }
-
-                if (cache.glMemory == 0) {
-                    //glImportMemoryWin32HandleEXT(cache.glMemory = glCreateMemoryObjectsEXT(), mapped.bufferCreateInfo.size, GL_HANDLE_TYPE_OPAQUE_WIN32_EXT, mapped.obj.getWin32Handle().get(0));
-                    cache.glMemory = mapped.glMemory;
-                }
-
-                long cOffset = cache.offset.get(0);
-                long mOffset = mapped.obj.memoryOffset;
-                glInvalidateBufferData(glBuffer[0]);
-                glNamedBufferStorageMemEXT(glBuffer[0], defaultSize, cache.glMemory, mOffset + cOffset);
             }
-        }*/
+        }
 
-        return glBuffer[0];
-    };
+        return cache;
+    }
+
+    //
+    public static ResourceCache glAllocateMemory(int glBuffer, int target, long defaultSize, int usage) throws Exception {
+        return glAllocateMemory(resourceCacheMap.get(glBuffer), target, defaultSize, usage);
+    }
+
+    //
+    public static void glBindBuffer(int target, int glVirtual) {
+        GL20.glBindBuffer(target, 0);
+        boundBuffers.remove(target);
+        if (glVirtual != 0) {
+            var cache = resourceCacheMap.get(glVirtual);
+            if (cache != null) {
+                boundBuffers.put(target, cache); // TODO: unbound memory
+                if (cache.glStorageBuffer != 0) GL20.glBindBuffer(target, cache.glStorageBuffer);
+            }
+        }
+    }
 
     // TODO: full replace by Vulkan
     public static void glBufferData(int target, long data, int usage) throws Exception {
-        if (target == GL_ARRAY_BUFFER || target == GL_ELEMENT_ARRAY_BUFFER) {
-            long offset = 0L;//target == GL_ARRAY_BUFFER ? glGetInteger64(GL_VERTEX_BINDING_OFFSET) : 0;
-            int id = glGetInteger(target == GL_ARRAY_BUFFER ? GL_ARRAY_BUFFER_BINDING : GL_ELEMENT_ARRAY_BUFFER_BINDING);
-
-            // use direct access
-            id = glCreateBuffer(target, offset + data, new int[]{id});
-        } else {
-            GL20.glBufferData(target, data, usage);
-        };
+        glAllocateMemory(boundBuffers.get(target), target, data, usage);
     }
 
     // TODO: full replace by Vulkan
     public static void glBufferData(int target, ByteBuffer data, int usage) throws Exception {
-        if (target == GL_ARRAY_BUFFER || target == GL_ELEMENT_ARRAY_BUFFER) {
-            long offset = 0L;//target == GL_ARRAY_BUFFER ? glGetInteger64(GL_VERTEX_BINDING_OFFSET) : 0;
-            int id = glGetInteger(target == GL_ARRAY_BUFFER ? GL_ARRAY_BUFFER_BINDING : GL_ELEMENT_ARRAY_BUFFER_BINDING);
-
-            // use direct access
-            glNamedBufferSubData(id = glCreateBuffer(target, data.capacity(), new int[]{id}), 0, data);
-            //glBufferSubData(target, 0, data);
-        } else {
-            GL20.glBufferData(target, data, usage);
-        };
+        var cache = glAllocateMemory(boundBuffers.get(target), target, data.capacity(), usage);
+        glNamedBufferSubData(cache.glStorageBuffer, cache.offset.get(0), data);
     }
 
 };

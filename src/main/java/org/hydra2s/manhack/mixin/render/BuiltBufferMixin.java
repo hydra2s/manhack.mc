@@ -18,30 +18,4 @@ import static org.lwjgl.vulkan.VK10.VK_WHOLE_SIZE;
 
 @Mixin(BufferBuilder.BuiltBuffer.class)
 public class BuiltBufferMixin implements BuiltBufferInterface {
-    @Unique public GlContext.ResourceBuffer vkVertexBuffer;
-    @Unique public GlContext.ResourceBuffer vkIndexBuffer;
-    @Unique public ByteBuffer preAllocated;
-    @Unique public int glVertexBuffer = 0;
-    @Unique public int glIndexBuffer = 0;
-
-    //
-    @Shadow private BufferBuilder.DrawParameters parameters;
-
-    //
-    @Override public int getGlVertexBuffer() { return glVertexBuffer; };
-    @Override public int getGlIndexBuffer() { return glIndexBuffer; };
-
-    //
-    @Override public GlContext.ResourceBuffer getVkVertexBuffer() { return vkVertexBuffer; };
-    @Override public GlContext.ResourceBuffer getVkIndexBuffer() { return vkIndexBuffer; }
-
-    @Override
-    public boolean syncData() {
-        return false;
-    }
-
-    @Override
-    public void fromIndexData(ByteBuffer preAllocated) {
-
-    }
 }

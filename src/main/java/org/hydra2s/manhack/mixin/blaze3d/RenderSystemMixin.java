@@ -8,6 +8,7 @@ import net.minecraft.util.math.MathHelper;
 import org.hydra2s.manhack.GlContext;
 import org.hydra2s.noire.descriptors.RendererCInfo;
 import org.hydra2s.noire.objects.MinecraftRendererObj;
+import org.lwjgl.opengl.GL20;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
@@ -35,23 +36,5 @@ public class RenderSystemMixin {
     private static void mInitRenderer(int debugVerbosity, boolean debugSync, CallbackInfo ci) throws IOException {
         GlContext.initialize();
     }
-
-    // TODO: deallocate texture
-    @Inject(method="deleteTexture(I)V", at=@At("HEAD"))
-    private static void mDeleteTexture(int texture, CallbackInfo ci) {
-        GlContext.ResourceImage resource = GlContext.resourceImageMap.get(texture);
-        if (resource != null) { GlContext.resourceImageMap.remove(texture); }
-    };
-
-    // TODO: deallocate buffer
-    @Inject(method="glDeleteBuffers(I)V", at=@At("HEAD"))
-    private static void mDeleteBuffer(int buffer, CallbackInfo ci) {
-        GlContext.ResourceCache resource = GlContext.resourceCacheMap.get(buffer);
-        // free virtual memory
-        if (resource != null) {
-            vmaVirtualFree(resource.mapped.vb.get(0), resource.allocInfo.address());
-            GlContext.resourceCacheMap.remove(buffer);
-        }
-    };
 
 }

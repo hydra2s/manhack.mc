@@ -17,46 +17,21 @@ import java.nio.ByteBuffer;
 
 import static org.lwjgl.vulkan.VK10.VK_WHOLE_SIZE;
 
+// allocate vulkan buffer instead
+// TODO: vulkan memory mapping
+// TODO: unbound data for built buffer memory
+// TODO: unbound from OpenGL API
+// TODO: unlock triangulator
+
 @Mixin(RenderSystem.ShapeIndexBuffer.class)
 public class ShapeIndexBufferMixin implements ShapeIndexBufferInterface {
     @Shadow private int vertexCountInTriangulated;
     @Shadow private VertexFormat.IndexType indexType;
-    //@Shadow private RenderSystem.ShapeIndexBuffer.Triangulator triangulator;
     @Shadow private int vertexCountInShape;
     @Shadow private int size;
 
     @Unique public GlContext.ResourceCache vk;
     @Shadow private int id;
-    @Unique ByteBuffer preAllocated;
+    @Unique public ByteBuffer preAllocated;
 
-    // allocate vulkan buffer instead
-    // TODO: vulkan memory mapping
-    // TODO: unbound data for built buffer memory
-    // TODO: unbound from OpenGL API
-    @Redirect(method="grow(I)V", at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/platform/GlStateManager;_glBufferData(IJI)V"))
-    private void onBufferData(int target, long data, int usage) throws Exception {
-        GlContext.glBufferData(target, data, usage);
-        this.vk = GlContext.resourceCacheMap.get(this.id);
-    }
-
-    // remap mapping...
-    @Redirect(method="grow(I)V", at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/platform/GlStateManager;mapBuffer(II)Ljava/nio/ByteBuffer;"))
-    private ByteBuffer onMapData(int target, int access) {
-        return this.vk.map(VK_WHOLE_SIZE, 0L);
-    }
-
-    // remap unmapping...
-    @Redirect(method="grow(I)V", at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/platform/GlStateManager;_glUnmapBuffer(I)V"))
-    private void onUnmapData(int target, int access) {
-        this.vk.unmap();
-    }
-
-    @Shadow private void grow(int requiredSize) {}
-    @Shadow private IntConsumer getIndexConsumer(ByteBuffer byteBuffer) { return null;}
-
-    @Override
-    public ByteBuffer getPreAllocated() {
-        return null;
-    }
-    //@Shadow private boolean isLargeEnough(int requiredSize) { return false; }
 }
