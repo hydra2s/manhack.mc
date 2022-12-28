@@ -46,10 +46,10 @@ public class GlStateManagerMixin {
     @Overwrite
     public static void _vertexAttribPointer(int index, int size, int type, boolean normalized, int stride, long pointer) throws Exception {
         var cache = GlContext.boundBuffers.get(GL_ARRAY_BUFFER);
-        if (cache.size == 0) {
-            System.out.println("Vertex Binding Failed: " + "Isn't allocated, and have no correct offset.");
-            throw new Exception("Vertex Binding Failed: " + "Isn't allocated, and have no correct offset.");
-        }
+        //if (cache.size == 0) {
+            //System.out.println("Vertex Binding Failed: " + "Isn't allocated, and have no correct offset.");
+            //throw new Exception("Vertex Binding Failed: " + "Isn't allocated, and have no correct offset.");
+        //}
 
         // TODO: replace a VAO binding stack!
         // TODO: deferred vertex pointer system!
@@ -57,10 +57,17 @@ public class GlStateManagerMixin {
         if (cache == null || cache.glStorageBuffer == 0) {
             GL20.glVertexAttribPointer(index, size, type, normalized, stride, pointer);
         } else {
-            GL20.glVertexAttribPointer(index, size, type, normalized, stride, pointer + cache.offset.get(0));
-            //GL43.glVertexAttribBinding(index, 0);
-            //GL43.glBindVertexBuffer(0, cache.glStorageBuffer, cache.offset.get(0), stride);
-            //GL43.glVertexAttribFormat(index, size, type, normalized, 0);
+            //GL20.glVertexAttribPointer(index, size, type, normalized, stride, pointer + cache.offset.get(0));
+            var vBinding = index;
+            GL43.glVertexAttribBinding(index, vBinding);
+            GL43.glVertexAttribFormat(index, size, type, normalized, (int) pointer);
+            if (cache.size == 0) {
+                cache.defer.add(() -> {
+                    GL43.glBindVertexBuffer(vBinding, cache.glStorageBuffer, cache.offset.get(0), stride);
+                });
+            } else {
+                GL43.glBindVertexBuffer(vBinding, cache.glStorageBuffer, cache.offset.get(0), stride);
+            }
         }
     }
 
@@ -71,10 +78,10 @@ public class GlStateManagerMixin {
     @Overwrite
     public static void _vertexAttribIPointer(int index, int size, int type, int stride, long pointer) throws Exception {
         var cache = GlContext.boundBuffers.get(GL_ARRAY_BUFFER);
-        if (cache.size == 0) {
-            System.out.println("Vertex Binding Failed: " + "Isn't allocated, and have no correct offset.");
-            throw new Exception("Vertex Binding Failed: " + "Isn't allocated, and have no correct offset.");
-        }
+        //if (cache.size == 0) {
+            //System.out.println("Vertex Binding Failed: " + "Isn't allocated, and have no correct offset.");
+            //throw new Exception("Vertex Binding Failed: " + "Isn't allocated, and have no correct offset.");
+        //}
 
         // TODO: replace a VAO binding stack!
         // TODO: deferred vertex pointer system!
@@ -82,10 +89,17 @@ public class GlStateManagerMixin {
         if (cache == null || cache.glStorageBuffer == 0) {
             GL30.glVertexAttribIPointer(index, size, type, stride, pointer);
         } else {
-            GL30.glVertexAttribIPointer(index, size, type, stride, pointer + cache.offset.get(0));
-            //GL43.glVertexAttribBinding(index, 0);
-            //GL43.glBindVertexBuffer(0, cache.glStorageBuffer, cache.offset.get(0), stride);
-            //GL43.glVertexAttribIFormat(index, size, type, 0);
+            //GL30.glVertexAttribIPointer(index, size, type, stride, pointer + cache.offset.get(0));
+            var vBinding = index;
+            GL43.glVertexAttribBinding(index, vBinding);
+            GL43.glVertexAttribIFormat(index, size, type, (int) pointer);
+            if (cache.size == 0) {
+                cache.defer.add(() -> {
+                    GL43.glBindVertexBuffer(vBinding, cache.glStorageBuffer, cache.offset.get(0), stride);
+                });
+            } else {
+                GL43.glBindVertexBuffer(vBinding, cache.glStorageBuffer, cache.offset.get(0), stride);
+            }
         }
     }
 
@@ -101,6 +115,19 @@ public class GlStateManagerMixin {
             System.out.println("Index Binding Failed: " + "Isn't allocated, and have no correct offset.");
             throw new Exception("Index Binding Failed: " + "Isn't allocated, and have no correct offset.");
         }
+
+        // TODO: workaround by shaders!!!
+        /*
+        var EL = GL45.glCreateBuffers();
+        GL45.glNamedBufferData(EL, cache.size, GL_DYNAMIC_DRAW);
+        GL45.glCopyNamedBufferSubData(cache.glStorageBuffer, EL, cache.offset.get(0), 0, cache.size);
+        GL20.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EL);
+        GL11.glDrawElements(mode, count, type, 0L);
+        GL20.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cache.glStorageBuffer);
+        GL45.glDeleteBuffers(EL);*/
+
+        //
+        GL20.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cache.glStorageBuffer);
         GL11.glDrawElements(mode, count, type, indices + cache.offset.get(0));
     }
 
@@ -182,7 +209,7 @@ public class GlStateManagerMixin {
     }
 
     //
-    @Shadow private static boolean ON_LINUX;
+    @Shadow(remap = false) private static boolean ON_LINUX;
 
     /**
      * @author
@@ -207,7 +234,7 @@ public class GlStateManagerMixin {
     }
 
     //
-    @Redirect(method="_deleteTexture", at=@At(value = "INVOKE", target = "Lorg/lwjgl/opengl/GL11;glDeleteTextures(I)V"))
+    @Redirect(remap = false, method="_deleteTexture", at=@At(value = "INVOKE", target = "Lorg/lwjgl/opengl/GL11;glDeleteTextures(I)V"))
     private static void onDeleteTexture(int texture) {
         GL11.glDeleteTextures(texture);
         GlContext.ResourceImage resource = GlContext.resourceImageMap.get(texture);
@@ -215,7 +242,7 @@ public class GlStateManagerMixin {
     }
 
     //
-    @Redirect(method="_deleteTextures", at=@At(value = "INVOKE", target = "Lorg/lwjgl/opengl/GL11;glDeleteTextures([I)V"))
+    @Redirect(remap = false, method="_deleteTextures", at=@At(value = "INVOKE", target = "Lorg/lwjgl/opengl/GL11;glDeleteTextures([I)V"))
     private static void onDeleteTextures(int textures[]) {
         GL11.glDeleteTextures(textures);
         for (var I=0;I<textures.length;I++) {

@@ -3,7 +3,6 @@ package org.hydra2s.manhack;
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.gl.ShaderProgram;
-import net.minecraft.client.render.VertexFormat;
 import net.minecraft.client.texture.NativeImage;
 import org.hydra2s.noire.descriptors.MemoryAllocationCInfo;
 import org.hydra2s.noire.descriptors.RendererCInfo;
@@ -14,7 +13,6 @@ import org.lwjgl.PointerBuffer;
 import org.lwjgl.opengl.GL20;
 import org.lwjgl.opengl.GL45;
 import org.lwjgl.util.vma.VmaVirtualAllocationCreateInfo;
-import org.lwjgl.util.vma.VmaVirtualAllocationInfo;
 import org.lwjgl.util.vma.VmaVirtualBlockCreateInfo;
 import org.lwjgl.vulkan.VkExtent3D;
 
@@ -33,8 +31,6 @@ import static org.lwjgl.opengl.EXTMemoryObjectWin32.glImportMemoryWin32HandleEXT
 import static org.lwjgl.opengl.GL11.GL_RGBA8;
 import static org.lwjgl.opengl.GL11.GL_TEXTURE_2D;
 import static org.lwjgl.opengl.GL11.glBindTexture;
-import static org.lwjgl.opengl.GL11.glGetInteger;
-import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL15.glBufferSubData;
 import static org.lwjgl.opengl.GL30.GL_R8;
 import static org.lwjgl.opengl.GL30.GL_RG8;
@@ -88,6 +84,7 @@ public class GlContext {
         // TODO: Virtual OpenGL Memory!
         public int glVirtualBuffer = 0;
         public int glStorageBuffer = 0;
+        public ArrayList<Runnable> defer = null;
 
         //
         public ByteBuffer map(long vkWholeSize, long i) {
@@ -100,7 +97,7 @@ public class GlContext {
 
         //
         public ResourceCache() {
-
+            this.defer = new ArrayList<>();
         }
     };
 
@@ -121,10 +118,8 @@ public class GlContext {
 
     }};
 
-
     //
     public static boolean hasIndexBuffer = false;
-    public static VertexFormat currentVertexFormat = null;
 
     //
     public static MinecraftRendererObj rendererObj;
@@ -275,8 +270,9 @@ public class GlContext {
             throw new Exception("Allocation Failed: " + "Allocation Not Found!");
         }
 
-        if (cache.size != defaultSize)
-        //if (cache.size < defaultSize)
+        defaultSize = Math.max(defaultSize, 1024L*16L*3L);
+        //if (cache.size != defaultSize)
+        if (cache.size < defaultSize)
         {
             if (cache.size != 0) {
                 vmaVirtualFree(mapped.vb.get(0), cache.allocId.get(0)); cache.size = 0L;
@@ -288,7 +284,10 @@ public class GlContext {
                 System.out.println("Allocation Failed: " + res);
                 throw new Exception("Allocation Failed: " + res);
             } else {
-                cache.size = defaultSize;
+                cache.size = cache.allocCreateInfo.size();
+
+                // bind vertex data deferred
+                if (cache.defer.size() > 0) { cache.defer.forEach(Runnable::run); cache.defer.clear(); };
             }
         }
 
@@ -314,15 +313,15 @@ public class GlContext {
     }
 
     // TODO: full replace by Vulkan
-    public static void glBufferData(int target, long data, int usage) throws Exception {
-        glAllocateMemory(target, data, usage);
+    public static ResourceCache glBufferData(int target, long data, int usage) throws Exception {
+        return glAllocateMemory(target, data, usage);
     }
 
     // TODO: full replace by Vulkan
-    public static void glBufferData(int target, ByteBuffer data, int usage) throws Exception {
+    public static ResourceCache glBufferData(int target, ByteBuffer data, int usage) throws Exception {
         var cache = glAllocateMemory(target, data.capacity(), usage);
-        var offset = cache.offset.get(0);
-        glNamedBufferSubData(cache.glStorageBuffer, offset, data);
+        glNamedBufferSubData(cache.glStorageBuffer, cache.offset.get(0), data);
+        return cache;
     }
 
 };

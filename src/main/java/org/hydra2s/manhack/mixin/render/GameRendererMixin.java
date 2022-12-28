@@ -17,7 +17,6 @@ public class GameRendererMixin {
     @Inject(method="render(FJZ)V", at=@At("HEAD"))
     public void onRenderBegin(float tickDelta, long startTime, boolean tick, CallbackInfo ci) {
         GlContext.worldRendering = false;
-        GlContext.currentVertexFormat = null;
     };
 
 }
