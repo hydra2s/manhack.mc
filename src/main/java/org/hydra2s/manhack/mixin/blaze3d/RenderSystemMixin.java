@@ -21,6 +21,12 @@ import java.nio.ByteBuffer;
 import static org.lwjgl.opengl.GL11.GL_TEXTURE_2D;
 import static org.lwjgl.util.vma.Vma.vmaVirtualFree;
 
+// NEW BIG TODO LIST!
+// - Needs replace a buffer memory stack!
+// - Needs add immutable buffer support!
+// - Needs add virtual buffer support!
+// - Needs add virtual allocation support!
+
 // TODO: unbound indexed memory
 @Mixin(RenderSystem.class)
 public class RenderSystemMixin {

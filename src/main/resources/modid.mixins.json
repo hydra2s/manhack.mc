@@ -9,6 +9,7 @@
     "blaze3d.RenderSystemMixin",
     "blaze3d.TextureUtilsMixin",
     "blaze3d.ShapeIndexBufferMixin",
+    "blaze3d.GlStateManagerMixin",,
     "render.BufferRendererMixin",
     "render.GameRendererMixin",
     "render.WorldRendererMixin",
