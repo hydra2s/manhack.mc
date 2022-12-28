@@ -269,7 +269,7 @@ public class GlContext {
             throw new Exception("Allocation Failed: " + "Allocation Not Found!");
         }
 
-        defaultSize = Math.max(defaultSize, 1024L*16L*3L);
+        defaultSize = Math.max(defaultSize, 1024L*64L*3L);
         if (cache.size != defaultSize)
         //if (cache.size < defaultSize)
         {
@@ -320,7 +320,8 @@ public class GlContext {
     // TODO: full replace by Vulkan
     public static ResourceCache glBufferData(int target, ByteBuffer data, int usage) throws Exception {
         var cache = glAllocateMemory(target, data.capacity(), usage);
-        glNamedBufferSubData(cache.glStorageBuffer, cache.offset.get(0), data);
+        glBufferSubData(target, cache.offset.get(0), data);
+        //glNamedBufferSubData(cache.glStorageBuffer, cache.offset.get(0), data);
         return cache;
     }
 
