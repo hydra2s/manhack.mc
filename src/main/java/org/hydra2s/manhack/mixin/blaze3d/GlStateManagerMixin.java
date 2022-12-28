@@ -44,9 +44,15 @@ public class GlStateManagerMixin {
      * @reason
      */
     @Overwrite
-    public static void _vertexAttribPointer(int index, int size, int type, boolean normalized, int stride, long pointer) {
+    public static void _vertexAttribPointer(int index, int size, int type, boolean normalized, int stride, long pointer) throws Exception {
         var cache = GlContext.boundBuffers.get(GL_ARRAY_BUFFER);
+        if (cache.size == 0) {
+            System.out.println("Vertex Binding Failed: " + "Isn't allocated, and have no correct offset.");
+            throw new Exception("Vertex Binding Failed: " + "Isn't allocated, and have no correct offset.");
+        }
 
+        // TODO: replace a VAO binding stack!
+        // TODO: deferred vertex pointer system!
         RenderSystem.assertOnRenderThread();
         if (cache == null || cache.glStorageBuffer == 0) {
             GL20.glVertexAttribPointer(index, size, type, normalized, stride, pointer);
@@ -63,9 +69,15 @@ public class GlStateManagerMixin {
      * @reason
      */
     @Overwrite
-    public static void _vertexAttribIPointer(int index, int size, int type, int stride, long pointer) {
+    public static void _vertexAttribIPointer(int index, int size, int type, int stride, long pointer) throws Exception {
         var cache = GlContext.boundBuffers.get(GL_ARRAY_BUFFER);
+        if (cache.size == 0) {
+            System.out.println("Vertex Binding Failed: " + "Isn't allocated, and have no correct offset.");
+            throw new Exception("Vertex Binding Failed: " + "Isn't allocated, and have no correct offset.");
+        }
 
+        // TODO: replace a VAO binding stack!
+        // TODO: deferred vertex pointer system!
         RenderSystem.assertOnRenderThread();
         if (cache == null || cache.glStorageBuffer == 0) {
             GL30.glVertexAttribIPointer(index, size, type, stride, pointer);
@@ -82,19 +94,14 @@ public class GlStateManagerMixin {
      * @reason
      */
     @Overwrite
-    public static void _drawElements(int mode, int count, int type, long indices) {
+    public static void _drawElements(int mode, int count, int type, long indices) throws Exception {
         RenderSystem.assertOnRenderThread();
         var cache = GlContext.boundBuffers.get(GL_ELEMENT_ARRAY_BUFFER);
-
-        // TODO: workaround by shaders!
-        // Use TEMP buffer for binding element arrays
-        int EL = GL45.glCreateBuffers();
-        GL45.glNamedBufferData(EL, cache.allocCreateInfo.size(), GL_DYNAMIC_DRAW);
-        GL45.glCopyNamedBufferSubData(cache.glStorageBuffer, EL, cache.offset.get(0), 0, cache.allocCreateInfo.size());
-        GL20.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EL);
-        GL11.glDrawElements(mode, count, type, indices);
-        GL20.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cache.glStorageBuffer);
-        GL20.glDeleteBuffers(EL);
+        if (cache.size == 0) {
+            System.out.println("Index Binding Failed: " + "Isn't allocated, and have no correct offset.");
+            throw new Exception("Index Binding Failed: " + "Isn't allocated, and have no correct offset.");
+        }
+        GL11.glDrawElements(mode, count, type, indices + cache.offset.get(0));
     }
 
     /**
@@ -194,7 +201,7 @@ public class GlStateManagerMixin {
         GlContext.ResourceCache resource = GlContext.resourceCacheMap.get(glVirtualBuffer);
         if (resource != null) {
             vmaVirtualFree(resource.mapped.vb.get(0), resource.allocId.get(0));
-            GlContext.resourceCacheMap.remove(glVirtualBuffer);
+            GlContext.resourceCacheMap.removeMem(resource);
         }
         //GL15.glDeleteBuffers(buffer);
     }

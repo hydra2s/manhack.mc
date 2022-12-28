@@ -206,7 +206,9 @@ public class GlContext {
 
                 //
                 glBindTexture(GL_TEXTURE_2D, id);
-                glImportMemoryWin32HandleEXT(resource.glMemory = glCreateMemoryObjectsEXT(), width * height * 4, GL_HANDLE_TYPE_OPAQUE_WIN32_EXT, resourceObj.getWin32Handle().get(0));
+                if (resource.glMemory == 0) {
+                    glImportMemoryWin32HandleEXT(resource.glMemory = glCreateMemoryObjectsEXT(), width * height * 4, GL_HANDLE_TYPE_OPAQUE_WIN32_EXT, resourceObj.getWin32Handle().get(0));
+                }
                 glTexStorageMem2DEXT(GL_TEXTURE_2D, maxLevel + 1, glFormat, width, height, resource.glMemory, resource.obj.memoryOffset);
 
                 //
@@ -257,11 +259,14 @@ public class GlContext {
         cache.glVirtualBuffer = resourceCacheMap.push(cache);
         cache.glStorageBuffer = mapped.glStorageBuffer;
         cache.mapped = mapped;
+        cache.offset = memAllocLong(1).put(0, 0L);
+        cache.allocId = memAllocPointer(1).put(0, 0L);
+        cache.allocCreateInfo = VmaVirtualAllocationCreateInfo.create();
         return cache.glVirtualBuffer;
     };
 
     //
-    public static ResourceCache glAllocateMemory(ResourceCache cache, int target, long defaultSize, int usage) throws Exception {
+    public static ResourceCache glAllocateMemory(ResourceCache cache, long defaultSize, int usage) throws Exception {
         // TODO: support for typed (entity, indexed, blocks, etc.)
         var mapped = resourceTargetMap.get(0);
 
@@ -270,19 +275,19 @@ public class GlContext {
             throw new Exception("Allocation Failed: " + "Allocation Not Found!");
         }
 
-        if (cache.size != defaultSize) {
+        if (cache.size != defaultSize)
+        //if (cache.size < defaultSize)
+        {
             if (cache.size != 0) {
                 vmaVirtualFree(mapped.vb.get(0), cache.allocId.get(0)); cache.size = 0L;
             }
 
             //
-            int res = vmaVirtualAllocate(mapped.vb.get(0), cache.allocCreateInfo = VmaVirtualAllocationCreateInfo.create().size(defaultSize), cache.allocId = memAllocPointer(1).put(0, 0L), cache.offset = memAllocLong(1).put(0, 0L));
+            int res = vmaVirtualAllocate(mapped.vb.get(0), cache.allocCreateInfo.size(defaultSize), cache.allocId, cache.offset);
             if (res != VK_SUCCESS) {
                 System.out.println("Allocation Failed: " + res);
                 throw new Exception("Allocation Failed: " + res);
             } else {
-                cache.glStorageBuffer = mapped.glStorageBuffer;
-                cache.mapped = mapped;
                 cache.size = defaultSize;
             }
         }
@@ -291,8 +296,8 @@ public class GlContext {
     }
 
     //
-    public static ResourceCache glAllocateMemory(int glBuffer, int target, long defaultSize, int usage) throws Exception {
-        return glAllocateMemory(resourceCacheMap.get(glBuffer), target, defaultSize, usage);
+    public static ResourceCache glAllocateMemory(int target, long defaultSize, int usage) throws Exception {
+        return glAllocateMemory(boundBuffers.get(target), defaultSize, usage);
     }
 
     //
@@ -310,13 +315,14 @@ public class GlContext {
 
     // TODO: full replace by Vulkan
     public static void glBufferData(int target, long data, int usage) throws Exception {
-        glAllocateMemory(boundBuffers.get(target), target, data, usage);
+        glAllocateMemory(target, data, usage);
     }
 
     // TODO: full replace by Vulkan
     public static void glBufferData(int target, ByteBuffer data, int usage) throws Exception {
-        var cache = glAllocateMemory(boundBuffers.get(target), target, data.capacity(), usage);
-        glNamedBufferSubData(cache.glStorageBuffer, cache.offset.get(0), data);
+        var cache = glAllocateMemory(target, data.capacity(), usage);
+        var offset = cache.offset.get(0);
+        glNamedBufferSubData(cache.glStorageBuffer, offset, data);
     }
 
 };
