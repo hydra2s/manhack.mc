@@ -32,6 +32,8 @@ import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL15.glBufferSubData;
 import static org.lwjgl.opengl.GL30.GL_R8;
 import static org.lwjgl.opengl.GL30.GL_RG8;
+import static org.lwjgl.opengl.GL32.glGetInteger64;
+import static org.lwjgl.opengl.GL43.GL_VERTEX_BINDING_OFFSET;
 import static org.lwjgl.system.MemoryUtil.memCopy;
 import static org.lwjgl.vulkan.KHRAccelerationStructure.VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
 import static org.lwjgl.vulkan.VK10.*;
@@ -191,11 +193,11 @@ public class GlContext {
 
     public static int glCreateBuffer(int glBuffer[], ResourceBuffer resource) {
         if (glBuffer != null && glBuffer[0] == 0) {GL45.glCreateBuffers(glBuffer);}
-        glImportMemoryWin32HandleEXT(resource.glMemory = glCreateMemoryObjectsEXT(), resource.bufferCreateInfo.size, GL_HANDLE_TYPE_OPAQUE_WIN32_EXT, resource.obj.getWin32Handle().get());
-        glNamedBufferStorageMemEXT(glBuffer[0], resource.bufferCreateInfo.size, resource.glMemory, resource.obj.memoryOffset);
-
-        //
-        GlContext.resourceBufferMap.put(glBuffer[0], resource);
+        if (!GlContext.resourceBufferMap.containsKey(glBuffer[0])) {
+            glImportMemoryWin32HandleEXT(resource.glMemory = glCreateMemoryObjectsEXT(), resource.bufferCreateInfo.size, GL_HANDLE_TYPE_OPAQUE_WIN32_EXT, resource.obj.getWin32Handle().get());
+            glNamedBufferStorageMemEXT(glBuffer[0], resource.bufferCreateInfo.size, resource.glMemory, resource.obj.memoryOffset);
+            GlContext.resourceBufferMap.put(glBuffer[0], resource);
+        }
         return glBuffer[0];
     };
 
@@ -214,15 +216,20 @@ public class GlContext {
     //
     public static void glBufferData(int target, ByteBuffer data, int usage, long defaultSize) {
         if (target == GL_ARRAY_BUFFER || target == GL_ELEMENT_ARRAY_BUFFER) {
+            long offset = 0L;//target == GL_ARRAY_BUFFER ? glGetInteger64(GL_VERTEX_BINDING_OFFSET) : 0;
             int id = glGetInteger(target == GL_ARRAY_BUFFER ? GL_ARRAY_BUFFER_BINDING : GL_ELEMENT_ARRAY_BUFFER_BINDING);
-            if (GlContext.resourceBufferMap.get(id) == null) {
-                glCreateBuffer(target, Math.max(data.capacity(), defaultSize), new int[]{id});
+            if (!GlContext.resourceBufferMap.containsKey(id)) {
+                glCreateBuffer(target, Math.max(offset + data.capacity(), defaultSize), new int[]{id});
             }
 
             //
-            var resource = GlContext.resourceBufferMap.get(id);
-            memCopy(data, resource.obj.map(data.capacity(), 0));
-            resource.obj.unmap();
+            glBufferSubData(target, offset, data);
+
+            // needs semaphores, synchronization, etc.
+            // planned in 2023 full-scale development of system
+            //var resource = GlContext.resourceBufferMap.get(id);
+            //memCopy(data, resource.obj.map(data.capacity(), offset));
+            //resource.obj.unmap();
         } else {
             GL20.glBufferData(target, data, usage);
         };

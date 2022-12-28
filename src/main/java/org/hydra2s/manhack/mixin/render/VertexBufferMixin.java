@@ -45,21 +45,21 @@ public class VertexBufferMixin {
     //
     @Redirect(method="uploadIndexBuffer", at=@At(value = "INVOKE", target = "Lcom/mojang/blaze3d/systems/RenderSystem;glBufferData(ILjava/nio/ByteBuffer;I)V"))
     void onIndexBufferData(int target, ByteBuffer data, int usage) {
-        if (worldRendering) {
+        //if (worldRendering) {
             GlContext.glBufferData(target, data, usage, Math.max(1024 * 1024 * 3 * 16, data.capacity()));
-        } else {
-            RenderSystem.glBufferData(target, data, usage);
-        }
+        //} else {
+            //RenderSystem.glBufferData(target, data, usage);
+        //}
     }
 
     //
     @Redirect(method="uploadVertexBuffer", at=@At(value = "INVOKE", target = "Lcom/mojang/blaze3d/systems/RenderSystem;glBufferData(ILjava/nio/ByteBuffer;I)V"))
     void onVertexBufferData(int target, ByteBuffer data, int usage) {
-        if (worldRendering) {
+        //if (worldRendering) {
             GlContext.glBufferData(target, data, usage, Math.max(1024 * 1024 * 3 * 16, data.capacity()));
-        } else {
-            RenderSystem.glBufferData(target, data, usage);
-        }
+        //} else {
+            //RenderSystem.glBufferData(target, data, usage);
+        //}
     }
 
 }

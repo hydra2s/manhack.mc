@@ -29,4 +29,18 @@ public class RenderSystemMixin {
         GlContext.initialize();
     }
 
+    // TODO: deallocate texture
+    @Inject(method="deleteTexture(I)V", at=@At("HEAD"))
+    private static void mDeleteTexture(int texture, CallbackInfo ci) {
+        GlContext.ResourceImage resource = GlContext.resourceImageMap.get(texture);
+        if (resource != null) { GlContext.resourceImageMap.remove(texture); }
+    };
+
+    // TODO: deallocate buffer
+    @Inject(method="glDeleteBuffers(I)V", at=@At("HEAD"))
+    private static void mDeleteBuffer(int buffer, CallbackInfo ci) {
+        GlContext.ResourceBuffer resource = GlContext.resourceBufferMap.get(buffer);
+        if (resource != null) { GlContext.resourceBufferMap.remove(buffer); }
+    };
+
 }
