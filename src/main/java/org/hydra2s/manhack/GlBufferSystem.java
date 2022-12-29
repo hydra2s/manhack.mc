@@ -5,6 +5,7 @@ import org.lwjgl.PointerBuffer;
 import org.lwjgl.util.vma.VmaVirtualAllocationCreateInfo;
 
 //
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
 import java.util.HashMap;
@@ -16,10 +17,11 @@ import static org.lwjgl.system.MemoryUtil.memAllocPointer;
 
 //
 public interface GlBufferSystem {
-    // TODO: Needs Unified Mapping!
+    //
     public static Map<Integer, VirtualBufferObj> boundBuffers = new HashMap<Integer, VirtualBufferObj>() {{
 
     }};
+    public static UnifiedMap<VirtualBufferObj> virtualBufferMap = new UnifiedMap<VirtualBufferObj>();
 
 
     //
@@ -32,14 +34,15 @@ public interface GlBufferSystem {
         public GlSharedBufferSystem.VkSharedBuffer mapped = null;
         public PointerBuffer allocId = null;
 
-        // TODO: Virtual OpenGL Memory!
+        //
         public int glVirtualBuffer = -1;
         public int glStorageBuffer = -1;
         public int stride = 0;
         public int bindingIndex = 0;
         public int target = 0;
-        public ByteBuffer allocatedMemory;
         public int vao = 0;
+        public ByteBuffer allocatedMemory;
+
 
         //
         public ByteBuffer map(int target, int access, long vkWholeSize, long i) {
@@ -84,51 +87,36 @@ public interface GlBufferSystem {
         }
     };
 
-
-
-
-    /*
-    // TODO: Needs Unified Mapping!
+    // Dummy
     public static void initialize() throws IOException {
     }
 
-    // TODO: Needs Unified Mapping!
+    // Dummy
     public static int glCreateVirtualBuffer() throws Exception {
-        var VBO = new GlBetterBufferSystem.VirtualBufferObj();
-        System.out.println("Generated New Virtual Buffer! Id: " + VBO.glVirtualBuffer);
-        return VBO.glVirtualBuffer;
+        return -1;
     }
 
-    // TODO: Needs Unified Mapping!
-    public static GlBetterBufferSystem.VirtualBufferObj glAllocateVirtualBuffer(int target, long defaultSize, int usage) throws Exception {
+    public static GlBufferSystem.VirtualBufferObj glAllocateVirtualBuffer(int target, long defaultSize, int usage) throws Exception {
         return boundBuffers.get(target).allocate(defaultSize, usage);
     }
 
-    // TODO: Needs Unified Mapping!
-    public static GlBetterBufferSystem.VirtualBufferObj glBindVirtualBuffer(int target, int glVirtual) throws Exception {
+    public static GlBufferSystem.VirtualBufferObj glBindVirtualBuffer(int target, int glVirtual) throws Exception {
         return virtualBufferMap.get(glVirtual).bind(target);
     }
 
-    // TODO: Needs Unified Mapping!
-    public static GlBetterBufferSystem.VirtualBufferObj glDeallocateVirtualBuffer(int glVirtualBuffer) throws Exception {
+    public static GlBufferSystem.VirtualBufferObj glDeallocateVirtualBuffer(int glVirtualBuffer) throws Exception {
         return virtualBufferMap.get(glVirtualBuffer).deallocate();
     }
 
-    // TODO: Needs Unified Mapping!
     public static void glDeleteVirtualBuffer(int glVirtualBuffer) throws Exception {
         virtualBufferMap.get(glVirtualBuffer).delete();
     }
 
-    // TODO: Needs Unified Mapping!
-    public static GlBetterBufferSystem.VirtualBufferObj glVirtualBufferData(int target, long data, int usage) throws Exception {
+    public static GlBufferSystem.VirtualBufferObj glVirtualBufferData(int target, long data, int usage) throws Exception {
         return boundBuffers.get(target).allocate(data, usage).bindVertex();
     }
 
-    // TODO: Needs Unified Mapping!
-    public static GlBetterBufferSystem.VirtualBufferObj glVirtualBufferData(int target, ByteBuffer data, int usage) throws Exception {
-        return (GlBetterBufferSystem.VirtualBufferObj) boundBuffers.get(target).allocate(data.remaining(), usage).data(target, data, usage).bindVertex();
+    public static GlBufferSystem.VirtualBufferObj glVirtualBufferData(int target, ByteBuffer data, int usage) throws Exception {
+        return boundBuffers.get(target).allocate(data.remaining(), usage).data(target, data, usage).bindVertex();
     }
-    */
-
-
 }

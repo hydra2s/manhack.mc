@@ -19,9 +19,6 @@ import static org.lwjgl.vulkan.VK10.*;
 
 //
 public class GlVirtualBufferSystem implements GlBufferSystem {
-    // TODO: Needs To Deprecate?
-    // TODO: Needs Unified Mapping!
-    public static PipelineLayoutObj.OutstandingArray<VirtualBufferObj> virtualBufferMap = new PipelineLayoutObj.OutstandingArray<VirtualBufferObj>();
     public static VirtualBufferObj dummyCache = new VirtualBufferObj();
 
     //
@@ -29,7 +26,9 @@ public class GlVirtualBufferSystem implements GlBufferSystem {
         //
         public VirtualBufferObj() {
             super();
-            this.glVirtualBuffer = virtualBufferMap.push(this);
+
+            // TODO: make hashmap for such object
+            this.glVirtualBuffer = virtualBufferMap.arrayMap.push(this);
 
             // TODO: support for typed (entity, indexed, blocks, etc.)
             var mapped = GlSharedBufferSystem.resourceTargetMap.get(0);
@@ -139,51 +138,14 @@ public class GlVirtualBufferSystem implements GlBufferSystem {
         }
     }
 
-    // TODO: Needs To Deprecate?
-    // TODO: Needs Unified Mapping!
+    //
     public static void initialize() throws IOException {
 
     };
 
-    // TODO: Needs To Deprecate?
-    // TODO: Needs Unified Mapping!
+    //
     public static int glCreateVirtualBuffer() throws Exception {
         return (new VirtualBufferObj()).glVirtualBuffer;
     }
 
-    // TODO: Needs To Deprecate?
-    // TODO: Needs Unified Mapping!
-    public static GlBufferSystem.VirtualBufferObj glAllocateVirtualBuffer(int target, long defaultSize, int usage) throws Exception {
-        return boundBuffers.get(target).allocate(defaultSize, usage);
-    }
-
-    // TODO: Needs To Deprecate?
-    // TODO: Needs Unified Mapping!
-    public static GlBufferSystem.VirtualBufferObj glBindVirtualBuffer(int target, int glVirtual) throws Exception {
-        return virtualBufferMap.get(glVirtual).bind(target);
-    }
-
-    // TODO: Needs To Deprecate?
-    // TODO: Needs Unified Mapping!
-    public static GlBufferSystem.VirtualBufferObj glDeallocateVirtualBuffer(int glVirtualBuffer) throws Exception {
-        return virtualBufferMap.get(glVirtualBuffer).deallocate();
-    }
-
-    // TODO: Needs To Deprecate?
-    // TODO: Needs Unified Mapping!
-    public static void glDeleteVirtualBuffer(int glVirtualBuffer) throws Exception {
-        virtualBufferMap.get(glVirtualBuffer).delete();
-    }
-
-    // TODO: Needs To Deprecate?
-    // TODO: Needs Unified Mapping!
-    public static GlBufferSystem.VirtualBufferObj glVirtualBufferData(int target, long data, int usage) throws Exception {
-        return boundBuffers.get(target).allocate(data, usage).bindVertex();
-    }
-
-    // TODO: Needs To Deprecate?
-    // TODO: Needs Unified Mapping!
-    public static GlBufferSystem.VirtualBufferObj glVirtualBufferData(int target, ByteBuffer data, int usage) throws Exception {
-        return boundBuffers.get(target).allocate(data.remaining(), usage).data(target, data, usage).bindVertex();
-    }
 };

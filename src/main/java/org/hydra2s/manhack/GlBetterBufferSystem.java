@@ -7,26 +7,19 @@ import org.lwjgl.opengl.GL45;
 //
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.Map;
 
 //
 import static org.lwjgl.opengl.GL11.glGetInteger;
 import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL30.GL_VERTEX_ARRAY_BINDING;
 
-// TODO! Replace most GL calls to more modern OpenGL API (with DSA support)
+//
 public class GlBetterBufferSystem implements GlBufferSystem {
-    // TODO: Needs To Deprecate?
-    // TODO: Needs Unified Mapping!
-    public static HashMap<Integer, VirtualBufferObj> virtualBufferMap = new HashMap<>();
-
-    //
     public static class VirtualBufferObj extends GlBufferSystem.VirtualBufferObj {
-        //
+        // TODO: needs array mapping or not? (i.e. indexed wrapper or virtual ID)
         public VirtualBufferObj() {
             super();
-            virtualBufferMap.put(this.glVirtualBuffer = GL45.glCreateBuffers(), this);
+            virtualBufferMap.hashMap.put(this.glVirtualBuffer = GL45.glCreateBuffers(), this);
             this.glStorageBuffer = this.glVirtualBuffer;
             System.out.println("Generated New Virtual Buffer! Id: " + this.glVirtualBuffer);
         }
@@ -44,7 +37,7 @@ public class GlBetterBufferSystem implements GlBufferSystem {
 
         @Override
         public VirtualBufferObj assert_() throws Exception {
-            if (this == null || this.glVirtualBuffer <= 0 || virtualBufferMap.get(this) == null) {
+            if (this == null || this.glVirtualBuffer <= 0 || this == null) {
                 System.out.println("Wrong Virtual Buffer Id! " + (this != null ? this.glVirtualBuffer : -1));
                 throw new Exception("Wrong Virtual Buffer Id! " + (this != null ? this.glVirtualBuffer : -1));
             }
@@ -94,7 +87,7 @@ public class GlBetterBufferSystem implements GlBufferSystem {
 
         @Override
         public void delete() throws Exception {
-            virtualBufferMap.remove(this.deallocate());
+            virtualBufferMap.removeMem(this.deallocate());
             boundBuffers.remove(this.target);
             System.out.println("Deleted Virtual Buffer! Id: " + this.glVirtualBuffer);
             this.glVirtualBuffer = -1;
@@ -103,54 +96,14 @@ public class GlBetterBufferSystem implements GlBufferSystem {
         }
     }
 
-
-
-
-    // TODO: Needs To Deprecate?
-    // TODO: Needs Unified Mapping!
+    //
     public static void initialize() throws IOException {
-    }
 
-    // TODO: Needs To Deprecate?
-    // TODO: Needs Unified Mapping!
+    };
+
+    //
     public static int glCreateVirtualBuffer() throws Exception {
         return (new VirtualBufferObj()).glVirtualBuffer;
-    }
-
-    // TODO: Needs To Deprecate?
-    // TODO: Needs Unified Mapping!
-    public static GlBufferSystem.VirtualBufferObj glAllocateVirtualBuffer(int target, long defaultSize, int usage) throws Exception {
-        return boundBuffers.get(target).allocate(defaultSize, usage);
-    }
-
-    // TODO: Needs To Deprecate?
-    // TODO: Needs Unified Mapping!
-    public static GlBufferSystem.VirtualBufferObj glBindVirtualBuffer(int target, int glVirtual) throws Exception {
-        return virtualBufferMap.get(glVirtual).bind(target);
-    }
-
-    // TODO: Needs To Deprecate?
-    // TODO: Needs Unified Mapping!
-    public static GlBufferSystem.VirtualBufferObj glDeallocateVirtualBuffer(int glVirtualBuffer) throws Exception {
-        return virtualBufferMap.get(glVirtualBuffer).deallocate();
-    }
-
-    // TODO: Needs To Deprecate?
-    // TODO: Needs Unified Mapping!
-    public static void glDeleteVirtualBuffer(int glVirtualBuffer) throws Exception {
-        virtualBufferMap.get(glVirtualBuffer).delete();
-    }
-
-    // TODO: Needs To Deprecate?
-    // TODO: Needs Unified Mapping!
-    public static GlBufferSystem.VirtualBufferObj glVirtualBufferData(int target, long data, int usage) throws Exception {
-        return boundBuffers.get(target).allocate(data, usage).bindVertex();
-    }
-
-    // TODO: Needs To Deprecate?
-    // TODO: Needs Unified Mapping!
-    public static GlBufferSystem.VirtualBufferObj glVirtualBufferData(int target, ByteBuffer data, int usage) throws Exception {
-        return (VirtualBufferObj) boundBuffers.get(target).allocate(data.remaining(), usage).data(target, data, usage).bindVertex();
     }
 
 }
