@@ -16,6 +16,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import java.nio.ByteBuffer;
 
 import static org.lwjgl.opengl.GL15.*;
+import static org.lwjgl.opengl.GL30.GL_VERTEX_ARRAY_BINDING;
 import static org.lwjgl.opengl.GL42.GL_BUFFER_UPDATE_BARRIER_BIT;
 import static org.lwjgl.opengl.GL42.GL_ELEMENT_ARRAY_BARRIER_BIT;
 import static org.lwjgl.opengl.GL43.glBindVertexBuffer;
@@ -48,22 +49,55 @@ public class GlStateManagerMixin {
      * @author
      * @reason
      */
+    @Overwrite(remap = false)
+    public static int _glGenVertexArrays() {
+        RenderSystem.assertOnRenderThreadOrInit();
+        return GL45.glCreateVertexArrays();
+    }
+
+    /**
+     * @author
+     * @reason
+     */
+    @Overwrite
+    public static void _glBindVertexArray(int array) {
+        RenderSystem.assertOnRenderThreadOrInit();
+        GL30.glBindVertexArray(array);
+    }
+
+
+
+    /**
+     * @author
+     * @reason
+     */
     @Overwrite
     public static void _vertexAttribPointer(int index, int size, int type, boolean normalized, int stride, long pointer) throws Exception {
         RenderSystem.assertOnRenderThread();
-        var cache = GlContext.boundBuffers.get(GL_ARRAY_BUFFER);
+
+        //
+        var cache = GlContext.assertVirtualBuffer(GlContext.boundBuffers.get(GL_ARRAY_BUFFER));
+        var bound = glGetInteger(GL_VERTEX_ARRAY_BINDING);
+        cache.vao = bound;
+
+        //
+        System.out.println("Used VAO: " + cache.vao);
+        System.out.println("Used override binding system!");
+        System.out.println("Called `_vertexAttribPointer`:");
+        System.out.println("Arg0 (index): " + index);
+        System.out.println("Arg1 (size): " + size);
+        System.out.println("Arg2 (type): " + type);
+        System.out.println("Arg3 (normalized): " + normalized);
+        System.out.println("Arg4 (stride): " + stride);
+        System.out.println("Arg5 (pointer): " + pointer);
 
         // TODO: replace a VAO binding stack!
         // TODO: deferred vertex pointer system!
         var vBinding = 0;//index;
         cache.stride = stride;
-        GL43.glVertexAttribBinding(index, cache.bindingIndex = vBinding);
-        GL43.glVertexAttribFormat(index, size, type, normalized, (int) pointer);
-
-        //
-        if (cache.target == GL_ARRAY_BUFFER && cache.stride > 0 && cache.size > 0) {
-            glBindVertexBuffer(cache.bindingIndex, cache.glStorageBuffer, cache.offset.get(0), cache.stride);
-        }
+        GL45.glVertexArrayAttribBinding(cache.vao, index, cache.bindingIndex = vBinding);
+        GL45.glVertexArrayAttribFormat(cache.vao, index, size, type, normalized, (int) pointer);
+        GlContext.glBindVertexBuffer(cache);
     }
 
     /**
@@ -73,19 +107,29 @@ public class GlStateManagerMixin {
     @Overwrite
     public static void _vertexAttribIPointer(int index, int size, int type, int stride, long pointer) throws Exception {
         RenderSystem.assertOnRenderThread();
-        var cache = GlContext.boundBuffers.get(GL_ARRAY_BUFFER);
+
+        //
+        var cache = GlContext.assertVirtualBuffer(GlContext.boundBuffers.get(GL_ARRAY_BUFFER));
+        var bound = glGetInteger(GL_VERTEX_ARRAY_BINDING);
+        cache.vao = bound;
+
+        //
+        System.out.println("Used VAO: " + cache.vao);
+        System.out.println("Used override binding system!");
+        System.out.println("Called `_vertexAttribIPointer`:");
+        System.out.println("Arg0 (index): " + index);
+        System.out.println("Arg1 (size): " + size);
+        System.out.println("Arg2 (type): " + type);
+        System.out.println("Arg3 (stride): " + stride);
+        System.out.println("Arg4 (pointer): " + pointer);
 
         // TODO: replace a VAO binding stack!
         // TODO: deferred vertex pointer system!
         var vBinding = 0;
         cache.stride = stride;
-        GL43.glVertexAttribBinding(index, cache.bindingIndex = vBinding);
-        GL43.glVertexAttribIFormat(index, size, type, (int) pointer);
-
-        //
-        if (cache.target == GL_ARRAY_BUFFER && cache.stride > 0 && cache.size > 0) {
-            glBindVertexBuffer(cache.bindingIndex, cache.glStorageBuffer, cache.offset.get(0), cache.stride);
-        }
+        GL45.glVertexArrayAttribBinding(cache.vao, index, cache.bindingIndex = vBinding);
+        GL45.glVertexArrayAttribIFormat(cache.vao, index, size, type, (int) pointer);
+        GlContext.glBindVertexBuffer(cache);
     }
 
     /**
@@ -127,7 +171,7 @@ public class GlStateManagerMixin {
      * @reason
      */
     @Overwrite
-    public static void _glBindBuffer(int target, int glVirtualBuffer) {
+    public static void _glBindBuffer(int target, int glVirtualBuffer) throws Exception {
         RenderSystem.assertOnRenderThreadOrInit();
         GlContext.glBindBuffer(target, glVirtualBuffer);
     }
@@ -215,13 +259,8 @@ public class GlStateManagerMixin {
         }
 
         //
-        GlContext.ResourceCache resource = GlContext.resourceCacheMap.get(glVirtualBuffer);
-        if (resource != null) {
-            vmaVirtualFree(resource.mapped.vb.get(0), resource.allocId.get(0));
-            resource.size = 0L; resource.offset.put(0, 0L);
-            GlContext.resourceCacheMap.removeMem(resource);
-        }
-        //GL15.glDeleteBuffers(buffer);
+        GlContext.glDeleteBuffer(glVirtualBuffer);
+        GlContext.glDeallocateBuffer(glVirtualBuffer);
     }
 
     //

@@ -92,6 +92,7 @@ public class GlContext {
         public int bindingIndex = 0;
         public int target = 0;
         public ByteBuffer allocatedMemory;
+        public int vao = 0;
         //public ArrayList<Runnable> defer = null;
 
         //
@@ -112,6 +113,16 @@ public class GlContext {
             this.allocCreateInfo = VmaVirtualAllocationCreateInfo.create().alignment(4L);
         }
     };
+
+
+    public static ResourceCache assertVirtualBuffer(ResourceCache cache) throws Exception {
+        if (cache == null || cache.glVirtualBuffer <= 0 || !resourceCacheMap.contains(cache)) {
+            System.out.println("Wrong Virtual Buffer Id! " + (cache != null ? cache.glVirtualBuffer : -1));
+            throw new Exception("Wrong Virtual Buffer Id! " + (cache != null ? cache.glVirtualBuffer : -1));
+        }
+        return cache;
+    }
+
 
     // TODO: support for typed (entity, indexed, blocks, etc.)
     public static Map<Integer, ResourceBuffer> resourceTargetMap = new HashMap<Integer, ResourceBuffer>();
@@ -262,33 +273,53 @@ public class GlContext {
         // TODO: support for typed (entity, indexed, blocks, etc.)
         var mapped = resourceTargetMap.get(0);
         var cache = new ResourceCache();
+
+        assertVirtualBuffer(cache);
+
         cache.glStorageBuffer = mapped.glStorageBuffer;
         //cache.glStorageBuffer = GL45.glCreateBuffers();
         cache.mapped = mapped;
+
+        //
+        System.out.println("Generated New Virtual Buffer! Id: " + cache.glVirtualBuffer);
         return cache.glVirtualBuffer;
     };
+
+    //
+    public static ResourceCache glBindVertexBuffer(ResourceCache cache) {
+        if (cache.target == GL_ARRAY_BUFFER && cache.stride > 0 && cache.size > 0 && cache.vao >= 0) {
+            GL45.glVertexArrayVertexBuffer(cache.vao, cache.bindingIndex, cache.glStorageBuffer, cache.offset.get(0), cache.stride);
+            // TODO: fix calling spam by VAO objects
+
+            /*
+            System.out.println("Vertex Buffer Bound!");
+            System.out.println("Arg0 (VAO): " + cache.vao);
+            System.out.println("Arg1 (BindingIndex): " + cache.bindingIndex);
+            System.out.println("Arg2 (Buffer, SYSTEM): " + cache.glStorageBuffer);
+            System.out.println("Arg2 (Buffer, VIRTUAL): " + cache.glVirtualBuffer);
+            System.out.println("Arg3 (Offset): " + cache.offset.get(0));
+            System.out.println("Arg4 (Stride): " + cache.stride);
+            */
+        }
+        return cache;
+    }
 
     //
     public static ResourceCache glAllocateMemory(ResourceCache cache, long defaultSize, int usage) throws Exception {
         // TODO: support for typed (entity, indexed, blocks, etc.)
         var mapped = resourceTargetMap.get(0);
 
-        if (cache == null) {
-            System.out.println("Allocation Failed: " + "Allocation Not Found!");
-            throw new Exception("Allocation Failed: " + "Allocation Not Found!");
-        }
-
-        defaultSize = Math.max(defaultSize, 1024L*64L*3L);
-        if (cache.size != defaultSize)
-        //if (cache.size < defaultSize)
+        //
+        assertVirtualBuffer(cache);
+        if (cache.size < defaultSize)
         {
-            var oldGlBuffer = cache.glStorageBuffer;
-            var oldGlOffset = cache.offset.get(0);
-            var oldGlSize = cache.size;
-            var oldGlAlloc = cache.allocId.get(0);
+            System.out.println("WARNING! Size of virtual buffer was changed! " + cache.size + " != " + defaultSize);
+            System.out.println("Virtual GL buffer ID: " + cache.glVirtualBuffer);
 
             //
-            cache.size = 0L; cache.offset.put(0, 0L);
+            glDeallocateBuffer(cache);
+
+            //
             int res = vmaVirtualAllocate(mapped.vb.get(0), cache.allocCreateInfo.size(cache.size = defaultSize), cache.allocId.put(0, 0L), cache.offset);
             if (res != VK_SUCCESS) {
                 System.out.println("Allocation Failed: " + res);
@@ -296,22 +327,7 @@ public class GlContext {
             }
 
             //
-            //cache.allocCreateInfo.size(cache.size = defaultSize);
-            //GL45.glNamedBufferStorage(cache.glStorageBuffer, cache.allocCreateInfo.size(), GL_CLIENT_STORAGE_BIT | GL_DYNAMIC_STORAGE_BIT | GL_MAP_READ_BIT | GL_MAP_WRITE_BIT);
-            //GL45.glNamedBufferData(cache.glStorageBuffer, cache.allocCreateInfo.size(), usage);
-
-            //
-            if (oldGlSize != 0) {
-                if (oldGlBuffer != 0) { GL45.glCopyNamedBufferSubData(oldGlBuffer, cache.glStorageBuffer, oldGlOffset, cache.offset.get(0), Math.min(oldGlSize, cache.size)); };
-                if (oldGlAlloc != 0) { vmaVirtualFree(mapped.vb.get(0), oldGlAlloc); };
-                //if (oldGlBuffer != 0) { GL45.glDeleteBuffers(oldGlBuffer); };
-                oldGlSize = 0L; oldGlOffset = 0L; oldGlAlloc = 0L;
-            }
-
-            //
-            if (cache.target == GL_ARRAY_BUFFER && cache.stride > 0 && cache.size > 0) {
-                glBindVertexBuffer(cache.bindingIndex, cache.glStorageBuffer, cache.offset.get(0), cache.stride);
-            }
+            System.out.println("Virtual buffer Size Changed: " + cache.size);
         }
         return cache;
     }
@@ -322,35 +338,58 @@ public class GlContext {
     }
 
     //
-    public static void glBindBuffer(int target, int glVirtual) {
+    public static void glBindBuffer(int target, int glVirtual) throws Exception {
         GL20.glBindBuffer(target, 0);
         boundBuffers.remove(target);
-        if (glVirtual != 0) {
-            var cache = resourceCacheMap.get(glVirtual);
-            if (cache != null && cache.glStorageBuffer != 0) {
-                boundBuffers.put(cache.target = target, cache); // TODO: unbound memory
-                GL20.glBindBuffer(target, cache.glStorageBuffer);
+        {
+            var cache = assertVirtualBuffer(resourceCacheMap.get(glVirtual));
 
-                //
-                if (cache.target == GL_ARRAY_BUFFER && cache.stride > 0 && cache.size > 0) {
-                    glBindVertexBuffer(cache.bindingIndex, cache.glStorageBuffer, cache.offset.get(0), cache.stride);
-                }
-                //cache.defer.clear();
+            // TODO: unbound memory
+            if (target == GL_ARRAY_BUFFER) {
+                cache.vao = cache.vao > 0 ? cache.vao : glGetInteger(GL_VERTEX_ARRAY_BINDING);
             }
+
+            // TODO: unbound memory
+            boundBuffers.put(cache.target = target, cache);
+            GL20.glBindBuffer(target, cache.glStorageBuffer);
+            glBindVertexBuffer(cache);
         }
+    }
+
+    public static ResourceCache glDeallocateBuffer(ResourceCache resource) throws Exception {
+        assertVirtualBuffer(resource);
+        vmaVirtualFree(resource.mapped.vb.get(0), resource.allocId.get(0));
+        System.out.println("Deallocated Virtual Buffer! Id: " + resource.glVirtualBuffer);
+        resource.size = 0L; resource.offset.put(0, 0L);
+        return resource;
+    }
+
+    public static ResourceCache glDeallocateBuffer(int glVirtualBuffer) throws Exception {
+        return glDeallocateBuffer(assertVirtualBuffer(GlContext.resourceCacheMap.get(glVirtualBuffer)));
+    }
+
+    public static void glDeleteBuffer(int glVirtualBuffer) throws Exception {
+        GlContext.ResourceCache resource = assertVirtualBuffer(GlContext.resourceCacheMap.get(glVirtualBuffer));
+        GlContext.resourceCacheMap.removeMem(glDeallocateBuffer(resource));
+        GlContext.boundBuffers.remove(resource.target);
+        System.out.println("Deleted Virtual Buffer! Id: " + resource.glVirtualBuffer);
+        resource.glVirtualBuffer = -1;
     }
 
     // TODO: full replace by Vulkan
     public static ResourceCache glBufferData(int target, long data, int usage) throws Exception {
-        return glAllocateMemory(target, data, usage);
+        var cache = assertVirtualBuffer(boundBuffers.get(target));
+        glAllocateMemory(cache, data, usage);
+        glBindVertexBuffer(cache);
+        return cache;
     }
 
     // TODO: full replace by Vulkan
     public static ResourceCache glBufferData(int target, ByteBuffer data, int usage) throws Exception {
-        var cache = glAllocateMemory(target, data.capacity(), usage);
-        //glBufferSubData(target, cache.offset.get(0), data);
+        var cache = assertVirtualBuffer(boundBuffers.get(target));
+        glAllocateMemory(cache, data.capacity(), usage);
         glNamedBufferSubData(cache.glStorageBuffer, cache.offset.get(0), data);
+        glBindVertexBuffer(cache);
         return cache;
     }
-
 };
