@@ -1,9 +1,7 @@
 package org.hydra2s.manhack;
 
 import org.hydra2s.noire.descriptors.MemoryAllocationCInfo;
-import org.hydra2s.noire.descriptors.RendererCInfo;
 import org.hydra2s.noire.objects.MemoryAllocationObj;
-import org.hydra2s.noire.objects.MinecraftRendererObj;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.opengl.GL45;
 import org.lwjgl.util.vma.VmaVirtualBlockCreateInfo;

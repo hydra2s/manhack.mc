@@ -1,26 +1,13 @@
 package org.hydra2s.manhack.mixin.blaze3d;
 
-import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
-import net.minecraft.client.render.VertexFormat;
-import net.minecraft.client.texture.NativeImage;
-import net.minecraft.util.math.MathHelper;
 import org.hydra2s.manhack.GlContext;
-import org.hydra2s.noire.descriptors.RendererCInfo;
-import org.hydra2s.noire.objects.MinecraftRendererObj;
-import org.lwjgl.opengl.GL20;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Overwrite;
-import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
-
-import static org.lwjgl.opengl.GL11.GL_TEXTURE_2D;
-import static org.lwjgl.util.vma.Vma.vmaVirtualFree;
 
 // NEW BIG TODO LIST!
 // - Needs replace a buffer memory stack!
