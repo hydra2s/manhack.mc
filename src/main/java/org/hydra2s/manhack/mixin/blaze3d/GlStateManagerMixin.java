@@ -42,13 +42,13 @@ public class GlStateManagerMixin {
         //if (GlContext.VGL_VERSION_A)
         {
             var vBinding = 0;//index;
-            var cache = GlVirtualBufferSystem.assertVirtualBuffer(GlVirtualBufferSystem.boundBuffers.get(GL_ARRAY_BUFFER));
-            cache.vao = bound;
-            cache.stride = stride;
+            var VBO = GlVirtualBufferSystem.assertVirtualBuffer(GlVirtualBufferSystem.boundBuffers.get(GL_ARRAY_BUFFER));
+            VBO.vao = bound;
+            VBO.stride = stride;
 
-            GL45.glVertexArrayAttribBinding(cache.vao, index, cache.bindingIndex = vBinding);
-            GL45.glVertexArrayAttribFormat(cache.vao, index, size, type, normalized, (int) pointer);
-            GlVirtualBufferSystem.glBindVertexBuffer(cache);
+            GL45.glVertexArrayAttribBinding(VBO.vao, index, VBO.bindingIndex = vBinding);
+            GL45.glVertexArrayAttribFormat(VBO.vao, index, size, type, normalized, (int) pointer);
+            GlVirtualBufferSystem.glBindVirtualVertexBuffer(VBO);
         }
         //else {
             //GL20.glVertexAttribPointer(index, size, type, normalized, stride, pointer);
@@ -69,12 +69,12 @@ public class GlStateManagerMixin {
         //if (GlContext.VGL_VERSION_A)
         {
             var vBinding = 0;//index;
-            var cache = GlVirtualBufferSystem.assertVirtualBuffer(GlVirtualBufferSystem.boundBuffers.get(GL_ARRAY_BUFFER));
-            cache.vao = bound;
-            cache.stride = stride;
-            GL45.glVertexArrayAttribBinding(cache.vao, index, cache.bindingIndex = vBinding);
-            GL45.glVertexArrayAttribIFormat(cache.vao, index, size, type, (int) pointer);
-            GlVirtualBufferSystem.glBindVertexBuffer(cache);
+            var VBO = GlVirtualBufferSystem.assertVirtualBuffer(GlVirtualBufferSystem.boundBuffers.get(GL_ARRAY_BUFFER));
+            VBO.vao = bound;
+            VBO.stride = stride;
+            GL45.glVertexArrayAttribBinding(VBO.vao, index, VBO.bindingIndex = vBinding);
+            GL45.glVertexArrayAttribIFormat(VBO.vao, index, size, type, (int) pointer);
+            GlVirtualBufferSystem.glBindVirtualVertexBuffer(VBO);
         }
         //else {
             //GL30.glVertexAttribIPointer(index, size, type, stride, pointer);
@@ -92,11 +92,11 @@ public class GlStateManagerMixin {
 
         // HERE IS PROBLEM!!! (`glBindBuffer` with `GL_ELEMENT_ARRAY_BUFFER`)
         // TODO: workaround by shaders!!!
-        var cache = GlVirtualBufferSystem.assertVirtualBuffer(GlVirtualBufferSystem.boundBuffers.get(GL_ELEMENT_ARRAY_BUFFER));
+        var VBO = GlVirtualBufferSystem.assertVirtualBuffer(GlVirtualBufferSystem.boundBuffers.get(GL_ELEMENT_ARRAY_BUFFER));
 
-        //System.out.println("Used Virtual Index Buffer: " + cache.glVirtualBuffer + ", With offset: " + cache.offset.get(0));
+        //System.out.println("Used Virtual Index Buffer: " + VBO.glVirtualBuffer + ", With offset: " + VBO.offset.get(0));
 
-        GL11.glDrawElements(mode, count, type, indices + cache.offset.get(0));
+        GL11.glDrawElements(mode, count, type, indices + VBO.offset.get(0));
     }*/
 
     /**
@@ -106,7 +106,7 @@ public class GlStateManagerMixin {
     /*@Overwrite(remap = false)
     public static int _glGenBuffers() throws Exception {
         RenderSystem.assertOnRenderThreadOrInit();
-        return GlVirtualBufferSystem.glCreateBuffer();
+        return GlVirtualBufferSystem.glCreateVirtualBuffer();
     }*/
 
     /**
@@ -116,7 +116,7 @@ public class GlStateManagerMixin {
     /*@Overwrite
     public static void _glBindBuffer(int target, int glVirtualBuffer) throws Exception {
         RenderSystem.assertOnRenderThreadOrInit();
-        GlVirtualBufferSystem.glBindBuffer(target, glVirtualBuffer);
+        GlVirtualBufferSystem.glBindVirtualBuffer(target, glVirtualBuffer);
     }*/
 
     /**
@@ -126,7 +126,7 @@ public class GlStateManagerMixin {
     /*@Overwrite
     public static void _glBufferData(int target, ByteBuffer data, int usage) throws Exception {
         RenderSystem.assertOnRenderThreadOrInit();
-        GlVirtualBufferSystem.glBufferData(target, data, usage);
+        GlVirtualBufferSystem.glVirtualBufferData(target, data, usage);
     }*/
 
     /**
@@ -149,9 +149,9 @@ public class GlStateManagerMixin {
     public static ByteBuffer mapBuffer(int target, int access) throws Exception {
         RenderSystem.assertOnRenderThreadOrInit();
 
-        var cache = GlVirtualBufferSystem.assertVirtualBuffer(GlVirtualBufferSystem.boundBuffers.get(target));
+        var VBO = GlVirtualBufferSystem.assertVirtualBuffer(GlVirtualBufferSystem.boundBuffers.get(target));
         System.out.println("Used Vulkan Mapped Memory, Synchronization May Required!");
-        return (cache.allocatedMemory = cache.map(target, access, cache.allocCreateInfo.size(), 0L));
+        return (VBO.allocatedMemory = VBO.map(target, access, VBO.allocCreateInfo.size(), 0L));
     }*/
 
     /**
@@ -181,7 +181,7 @@ public class GlStateManagerMixin {
             _glBufferData(GlConst.GL_ARRAY_BUFFER, 0L, GlConst.GL_DYNAMIC_DRAW);
             _glBindBuffer(GlConst.GL_ARRAY_BUFFER, 0);
         }
-        GlVirtualBufferSystem.glDeleteBuffer(glVirtualBuffer);
+        GlVirtualBufferSystem.glDeleteVirtualBuffer(glVirtualBuffer);
     }*/
 
     //

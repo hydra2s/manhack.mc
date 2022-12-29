@@ -22,13 +22,13 @@ import static org.lwjgl.vulkan.VK10.*;
 public class GlSharedTextureSystem {
 
     //
-    static public class ResourceImage {
+    static public class VkSharedImage {
         public int glMemory = 0;
         public VkExtent3D extent;
         public MemoryAllocationObj.ImageObj obj;
         public MemoryAllocationCInfo.ImageCInfo imageCreateInfo;
     };
-    public static Map<Integer, ResourceImage> resourceImageMap = null;
+    public static Map<Integer, VkSharedImage> resourceImageMap = null;
 
 
     //
@@ -38,12 +38,12 @@ public class GlSharedTextureSystem {
                 GlStateManager._texImage2D(3553, i, internalFormat.getValue(), width >> i, height >> i, 0, 6408, 5121, (IntBuffer)null);
             }
         } else {
-            ResourceImage resource = GlContext.resourceImageMap.get(id);
+            VkSharedImage resource = resourceImageMap.get(id);
             MemoryAllocationObj.ImageObj resourceObj = null;
 
             //
             if (resource == null) {
-                resource = new ResourceImage();
+                resource = new VkSharedImage();
                 resource.extent = VkExtent3D.create();
                 resource.extent.set(width, height, 1);
 
@@ -63,11 +63,11 @@ public class GlSharedTextureSystem {
                 }
 
                 //
-                var _pipelineLayout = rendererObj.pipelineLayout;
-                var _memoryAllocator = rendererObj.memoryAllocator;
-                ResourceImage finalResource = resource;
+                var _pipelineLayout = GlContext.rendererObj.pipelineLayout;
+                var _memoryAllocator = GlContext.rendererObj.memoryAllocator;
+                VkSharedImage finalResource = resource;
                 int finalVkFormat = vkFormat;
-                resourceObj = resource.obj = new MemoryAllocationObj.ImageObj(rendererObj.logicalDevice.getHandle(), resource.imageCreateInfo = new MemoryAllocationCInfo.ImageCInfo(){{
+                resourceObj = resource.obj = new MemoryAllocationObj.ImageObj(GlContext.rendererObj.logicalDevice.getHandle(), resource.imageCreateInfo = new MemoryAllocationCInfo.ImageCInfo(){{
                     extent3D = finalResource.extent;
                     format = finalVkFormat;
                     mipLevels = 1;
@@ -85,7 +85,7 @@ public class GlSharedTextureSystem {
                 glTexStorageMem2DEXT(GL_TEXTURE_2D, maxLevel + 1, glFormat, width, height, resource.glMemory, resource.obj.memoryOffset);
 
                 //
-                GlContext.resourceImageMap.put(id, resource);
+                resourceImageMap.put(id, resource);
             } else {
                 resourceObj = resource.obj;
             };
