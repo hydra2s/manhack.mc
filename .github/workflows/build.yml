@@ -11,13 +11,13 @@ jobs:
     strategy:
       matrix:
         # Use these Java versions
-        java: [
-          17,    # Current Java LTS & minimum supported by Minecraft
-        ]
+        java: [17, 18, 19] # Current Java LTS & minimum supported by Minecraft
         # and run on both Linux and Windows
         os: [ubuntu-22.04, windows-2022]
     runs-on: ${{ matrix.os }}
     steps:
+      - name: clone noire.java (may to be renamed)
+        run: git clone https://github.com/hydra2s/noire.java --recursive
       - name: checkout repository
         uses: actions/checkout@v3
       - name: validate gradle wrapper
