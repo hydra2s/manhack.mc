@@ -65,8 +65,6 @@ public class GlStateManagerMixin {
         GL30.glBindVertexArray(array);
     }
 
-
-
     /**
      * @author
      * @reason
@@ -76,12 +74,8 @@ public class GlStateManagerMixin {
         RenderSystem.assertOnRenderThread();
 
         //
-        var cache = GlContext.assertVirtualBuffer(GlContext.boundBuffers.get(GL_ARRAY_BUFFER));
         var bound = glGetInteger(GL_VERTEX_ARRAY_BINDING);
-        cache.vao = bound;
-
-        //
-        System.out.println("Used VAO: " + cache.vao);
+        System.out.println("Used VAO: " + bound);
         System.out.println("Used override binding system!");
         System.out.println("Called `_vertexAttribPointer`:");
         System.out.println("Arg0 (index): " + index);
@@ -93,11 +87,21 @@ public class GlStateManagerMixin {
 
         // TODO: replace a VAO binding stack!
         // TODO: deferred vertex pointer system!
-        var vBinding = 0;//index;
-        cache.stride = stride;
-        GL45.glVertexArrayAttribBinding(cache.vao, index, cache.bindingIndex = vBinding);
-        GL45.glVertexArrayAttribFormat(cache.vao, index, size, type, normalized, (int) pointer);
-        GlContext.glBindVertexBuffer(cache);
+        //if (GlContext.VGL_VERSION_A)
+        {
+            var vBinding = 0;//index;
+            var cache = GlContext.assertVirtualBuffer(GlContext.boundBuffers.get(GL_ARRAY_BUFFER));
+            cache.vao = bound;
+            cache.stride = stride;
+
+            GL45.glVertexArrayAttribBinding(cache.vao, index, cache.bindingIndex = vBinding);
+            GL45.glVertexArrayAttribFormat(cache.vao, index, size, type, normalized, (int) pointer);
+            GlContext.glBindVertexBuffer(cache);
+        }
+        //else {
+            //GL20.glVertexAttribPointer(index, size, type, normalized, stride, pointer);
+        //}
+
     }
 
     /**
@@ -109,12 +113,8 @@ public class GlStateManagerMixin {
         RenderSystem.assertOnRenderThread();
 
         //
-        var cache = GlContext.assertVirtualBuffer(GlContext.boundBuffers.get(GL_ARRAY_BUFFER));
         var bound = glGetInteger(GL_VERTEX_ARRAY_BINDING);
-        cache.vao = bound;
-
-        //
-        System.out.println("Used VAO: " + cache.vao);
+        System.out.println("Used VAO: " + bound);
         System.out.println("Used override binding system!");
         System.out.println("Called `_vertexAttribIPointer`:");
         System.out.println("Arg0 (index): " + index);
@@ -125,11 +125,20 @@ public class GlStateManagerMixin {
 
         // TODO: replace a VAO binding stack!
         // TODO: deferred vertex pointer system!
-        var vBinding = 0;
-        cache.stride = stride;
-        GL45.glVertexArrayAttribBinding(cache.vao, index, cache.bindingIndex = vBinding);
-        GL45.glVertexArrayAttribIFormat(cache.vao, index, size, type, (int) pointer);
-        GlContext.glBindVertexBuffer(cache);
+        //if (GlContext.VGL_VERSION_A)
+        {
+            var vBinding = 0;//index;
+            var cache = GlContext.assertVirtualBuffer(GlContext.boundBuffers.get(GL_ARRAY_BUFFER));
+            cache.vao = bound;
+            cache.stride = stride;
+            GL45.glVertexArrayAttribBinding(cache.vao, index, cache.bindingIndex = vBinding);
+            GL45.glVertexArrayAttribIFormat(cache.vao, index, size, type, (int) pointer);
+            GlContext.glBindVertexBuffer(cache);
+        }
+        //else {
+            //GL30.glVertexAttribIPointer(index, size, type, stride, pointer);
+        //}
+
     }
 
     /**
@@ -139,20 +148,10 @@ public class GlStateManagerMixin {
     @Overwrite
     public static void _drawElements(int mode, int count, int type, long indices) throws Exception {
         RenderSystem.assertOnRenderThread();
-        var cache = GlContext.boundBuffers.get(GL_ELEMENT_ARRAY_BUFFER);
 
+        // HERE IS PROBLEM!!! (`glBindBuffer` with `GL_ELEMENT_ARRAY_BUFFER`)
         // TODO: workaround by shaders!!!
-        /*
-        var EL = GL45.glCreateBuffers();
-        GL45.glNamedBufferData(EL, cache.size, GL_DYNAMIC_DRAW);
-        GL45.glCopyNamedBufferSubData(cache.glStorageBuffer, EL, cache.offset.get(0), 0, cache.size);
-        GL20.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EL);
-        GL11.glDrawElements(mode, count, type, 0L);
-        GL20.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cache.glStorageBuffer);
-        GL45.glDeleteBuffers(EL);*/
-
-        //
-        GL20.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cache.glStorageBuffer);
+        var cache = GlContext.assertVirtualBuffer(GlContext.boundBuffers.get(GL_ELEMENT_ARRAY_BUFFER));
         GL11.glDrawElements(mode, count, type, indices + cache.offset.get(0));
     }
 
@@ -203,20 +202,12 @@ public class GlStateManagerMixin {
 
     // TODO: needs Vulkan API synchronization!!!
     @Nullable @Overwrite
-    public static ByteBuffer mapBuffer(int target, int access) {
+    public static ByteBuffer mapBuffer(int target, int access) throws Exception {
         RenderSystem.assertOnRenderThreadOrInit();
-        //return GL15.glMapBuffer(target, access);
 
-        var cache = GlContext.boundBuffers.get(target);
-
-        // required for map ops
-        //GL45.glMemoryBarrier(GL_ELEMENT_ARRAY_BARRIER_BIT|GL_BUFFER_UPDATE_BARRIER_BIT|GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT);
-        if (cache.allocatedMemory == null) {
-            System.out.println("Used Vulkan Mapped Memory, Synchronization May Required!");
-            return (cache.allocatedMemory = cache.map(cache.allocCreateInfo.size(), 0L));
-        }
-        return cache.allocatedMemory;
-        //return (cache.allocatedMemory = memAlloc((int) cache.allocCreateInfo.size()));
+        var cache = GlContext.assertVirtualBuffer(GlContext.boundBuffers.get(target));
+        System.out.println("Used Vulkan Mapped Memory, Synchronization May Required!");
+        return (cache.allocatedMemory = cache.map(target, access, cache.allocCreateInfo.size(), 0L));
     }
 
     /**
@@ -226,20 +217,9 @@ public class GlStateManagerMixin {
 
     // TODO: needs Vulkan API synchronization!!!
     @Overwrite
-    public static void _glUnmapBuffer(int target) {
+    public static void _glUnmapBuffer(int target) throws Exception {
         RenderSystem.assertOnRenderThreadOrInit();
-
-        var cache = GlContext.boundBuffers.get(target);
-        if (cache.allocatedMemory != null) {
-            //cache.unmap();
-
-            // required for map ops
-            //GL45.glMemoryBarrier(GL_ELEMENT_ARRAY_BARRIER_BIT|GL_BUFFER_UPDATE_BARRIER_BIT|GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT);
-
-            //
-            //GL45.glNamedBufferSubData(cache.glStorageBuffer, cache.offset.get(0), cache.allocatedMemory);
-            //cache.allocatedMemory = null;
-        }
+        GlContext.assertVirtualBuffer(GlContext.boundBuffers.get(target)).unmap(target);
     }
 
     //
@@ -257,10 +237,7 @@ public class GlStateManagerMixin {
             _glBufferData(GlConst.GL_ARRAY_BUFFER, 0L, GlConst.GL_DYNAMIC_DRAW);
             _glBindBuffer(GlConst.GL_ARRAY_BUFFER, 0);
         }
-
-        //
         GlContext.glDeleteBuffer(glVirtualBuffer);
-        GlContext.glDeallocateBuffer(glVirtualBuffer);
     }
 
     //
