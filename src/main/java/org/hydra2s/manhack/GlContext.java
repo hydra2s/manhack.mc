@@ -48,7 +48,7 @@ import static org.lwjgl.vulkan.VK12.VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
 public class GlContext {
 
-    public static final boolean VGL_VERSION_A = false;
+    public static final boolean VGL_VERSION_A = true;
     public static boolean worldRendering = false;
 
     //
@@ -336,7 +336,7 @@ public class GlContext {
             glDeallocateBuffer(cache);
 
             //
-            int res = vmaVirtualAllocate(mapped.vb.get(0), cache.allocCreateInfo.size(cache.size = defaultSize), cache.allocId.put(0, 0L), cache.offset);
+            int res = vmaVirtualAllocate(mapped.vb.get(0), cache.allocCreateInfo.size(cache.size = defaultSize), cache.allocId.put(0, 0L), cache.offset.put(0, 0L));
             if (res != VK_SUCCESS) {
                 System.out.println("Allocation Failed: " + res);
                 throw new Exception("Allocation Failed: " + res);
@@ -363,6 +363,11 @@ public class GlContext {
         if (target == GL_ARRAY_BUFFER) {
             cache.vao = cache.vao > 0 ? cache.vao : glGetInteger(GL_VERTEX_ARRAY_BINDING);
         }
+
+        //
+        //if (target == GL_ELEMENT_ARRAY_BUFFER) {
+            //System.out.println("Bound Virtual Index Buffer: " + cache.glVirtualBuffer + ", With offset: " + cache.offset.get(0));
+        //}
 
         // TODO: unbound memory
         boundBuffers.put(cache.target = target, cache);
@@ -413,11 +418,11 @@ public class GlContext {
     public static ResourceCache glBufferData(int target, ByteBuffer data, int usage) throws Exception {
         var cache = assertVirtualBuffer(boundBuffers.get(target));
         if (VGL_VERSION_A) {
-            glAllocateMemory(cache, data.capacity(), usage);
+            glAllocateMemory(cache, data.remaining(), usage);
             glNamedBufferSubData(cache.glStorageBuffer, cache.offset.get(0), data);
         } else {
             GL45.glNamedBufferData(cache.glStorageBuffer, data, usage);
-            cache.size = data.capacity();
+            cache.size = data.remaining();
         }
         glBindVertexBuffer(cache);
         return cache;

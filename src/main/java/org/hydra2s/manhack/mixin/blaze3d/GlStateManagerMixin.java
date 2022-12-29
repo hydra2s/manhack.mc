@@ -154,6 +154,9 @@ public class GlStateManagerMixin {
         // HERE IS PROBLEM!!! (`glBindBuffer` with `GL_ELEMENT_ARRAY_BUFFER`)
         // TODO: workaround by shaders!!!
         var cache = GlContext.assertVirtualBuffer(GlContext.boundBuffers.get(GL_ELEMENT_ARRAY_BUFFER));
+
+        //System.out.println("Used Virtual Index Buffer: " + cache.glVirtualBuffer + ", With offset: " + cache.offset.get(0));
+
         GL11.glDrawElements(mode, count, type, indices + cache.offset.get(0));
     }
 
