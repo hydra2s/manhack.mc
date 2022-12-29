@@ -24,7 +24,7 @@ import static org.lwjgl.vulkan.VK10.*;
 
 // the main rendering class!!!
 // TODO: finish up projecting
-public class MinecraftRendererObj extends BasicObj {
+public class GlRendererObj extends BasicObj {
     public PhysicalDeviceObj physicalDevice;
     public InstanceObj instance;
     public DeviceObj logicalDevice;
@@ -47,7 +47,7 @@ public class MinecraftRendererObj extends BasicObj {
 
 
     //
-    public MinecraftRendererObj initializer() throws IOException {
+    public GlRendererObj initializer() throws IOException {
         InstanceObj.globalHandleMap.put((this.handle = new Handle("Renderer", MemoryUtil.memAddress(memAllocLong(1)))).get(), this);
 
         //
@@ -85,7 +85,7 @@ public class MinecraftRendererObj extends BasicObj {
     }
 
     //
-    public MinecraftRendererObj submitOnce(Function<VkCommandBuffer, Integer> fx) {
+    public GlRendererObj submitOnce(Function<VkCommandBuffer, Integer> fx) {
         this.logicalDevice.submitOnce(logicalDevice.getCommandPool(0), new BasicCInfo.SubmitCmd(){{
             queue = logicalDevice.getQueue(0, 0);
 
@@ -94,7 +94,7 @@ public class MinecraftRendererObj extends BasicObj {
     }
 
     //
-    public MinecraftRendererObj pipelines() throws IOException {
+    public GlRendererObj pipelines() throws IOException {
         //var finalCompSpv = Files.readAllBytes(Path.of("./shaders/final.comp.spv"));
         var _pipelineLayout = this.pipelineLayout;
         var _memoryAllocator = memoryAllocator;
@@ -175,7 +175,7 @@ public class MinecraftRendererObj extends BasicObj {
     }
 
     //
-    public MinecraftRendererObj acceleration() {
+    public GlRendererObj acceleration() {
         var _pipelineLayout = this.pipelineLayout;
         var _memoryAllocator = memoryAllocator;
 
@@ -271,7 +271,7 @@ public class MinecraftRendererObj extends BasicObj {
     }
 
     //
-    public MinecraftRendererObj tickRendering () {
+    public GlRendererObj tickRendering () {
         this.logicalDevice.doPolling();
 
         //
@@ -321,7 +321,7 @@ public class MinecraftRendererObj extends BasicObj {
     }
 
     //
-    public MinecraftRendererObj rendering() {
+    public GlRendererObj rendering() {
 
         /*
         for (var I=0;I<this.swapchain.getImageCount();I++) {
@@ -344,13 +344,13 @@ public class MinecraftRendererObj extends BasicObj {
     }
 
     //
-    public MinecraftRendererObj prepare() {
+    public GlRendererObj prepare() {
 
         return this;
     }
 
     //
-    public MinecraftRendererObj windowed() {
+    public GlRendererObj windowed() {
         var _pipelineLayout = pipelineLayout;
         var _memoryAllocator = memoryAllocator;
 
@@ -400,7 +400,7 @@ public class MinecraftRendererObj extends BasicObj {
     }
 
     //
-    public MinecraftRendererObj(Handle base, Handle handle) throws IOException {
+    public GlRendererObj(Handle base, Handle handle) throws IOException {
         super(base, handle);
 
         this.initializer();
@@ -412,7 +412,7 @@ public class MinecraftRendererObj extends BasicObj {
     }
 
     //
-    public MinecraftRendererObj(Handle base, RendererCInfo cInfo) throws IOException {
+    public GlRendererObj(Handle base, RendererCInfo cInfo) throws IOException {
         super(base, cInfo);
 
         this.initializer();

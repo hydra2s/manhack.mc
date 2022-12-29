@@ -1,7 +1,8 @@
-package org.hydra2s.manhack;
+package org.hydra2s.manhack.virtual.buffer;
 
 //
-import org.hydra2s.noire.objects.PipelineLayoutObj;
+import org.hydra2s.manhack.interfaces.GlBaseVirtualBuffer;
+import org.hydra2s.manhack.vulkan.GlVulkanSharedBuffer;
 import org.lwjgl.opengl.GL20;
 import org.lwjgl.opengl.GL45;
 
@@ -18,24 +19,22 @@ import static org.lwjgl.util.vma.Vma.*;
 import static org.lwjgl.vulkan.VK10.*;
 
 //
-public class GlVirtualBufferSystem implements GlBufferSystem {
+public class GlVulkanVirtualBuffer implements GlBaseVirtualBuffer {
     public static VirtualBufferObj dummyCache = new VirtualBufferObj();
 
     //
-    public static class VirtualBufferObj extends GlBufferSystem.VirtualBufferObj {
+    public static class VirtualBufferObj extends GlBaseVirtualBuffer.VirtualBufferObj {
         //
         public VirtualBufferObj() {
             super();
 
-            // TODO: make hashmap for such object
-            this.glVirtualBuffer = virtualBufferMap.arrayMap.push(this);
-
             // TODO: support for typed (entity, indexed, blocks, etc.)
-            var mapped = GlSharedBufferSystem.resourceTargetMap.get(0);
+            var mapped = GlVulkanSharedBuffer.sharedBufferMap.get(0);
             this.glStorageBuffer = mapped.glStorageBuffer;
             this.mapped = mapped;
 
             //
+            this.glVirtualBuffer = virtualBufferMap.arrayMap.push(this);
             System.out.println("Generated New Virtual Buffer! Id: " + this.glVirtualBuffer);
         }
 
@@ -43,6 +42,11 @@ public class GlVirtualBufferSystem implements GlBufferSystem {
         @Override
         public ByteBuffer map(int target, int access, long vkWholeSize, long i) {
             return (this.allocatedMemory = this.mapped.obj.map(vkWholeSize, i + offset.get(0)));
+        }
+
+        @Override
+        public ByteBuffer map(int target, int access) {
+            return (this.allocatedMemory = this.mapped.obj.map(this.size, offset.get(0)));
         }
 
         @Override
@@ -109,7 +113,7 @@ public class GlVirtualBufferSystem implements GlBufferSystem {
         @Override
         public VirtualBufferObj allocate(long defaultSize, int usage) throws Exception {
             // TODO: support for typed (entity, indexed, blocks, etc.)
-            var mapped = GlSharedBufferSystem.resourceTargetMap.get(0);
+            var mapped = GlVulkanSharedBuffer.sharedBufferMap.get(0);
             if (this.assert_().size < defaultSize)
             {
                 System.out.println("WARNING! Size of virtual buffer was changed! " + this.size + " != " + defaultSize);
@@ -144,7 +148,7 @@ public class GlVirtualBufferSystem implements GlBufferSystem {
     };
 
     //
-    public static int glCreateVirtualBuffer() throws Exception {
+    public static int createVirtualBuffer() throws Exception {
         return (new VirtualBufferObj()).glVirtualBuffer;
     }
 

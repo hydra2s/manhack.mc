@@ -2,8 +2,10 @@ package org.hydra2s.manhack;
 
 import org.hydra2s.noire.objects.PipelineLayoutObj;
 
+//
 import java.util.HashMap;
 
+//
 public class UnifiedMap <E> {
     public PipelineLayoutObj.OutstandingArray<E> arrayMap = new PipelineLayoutObj.OutstandingArray<E>();
     public HashMap<Integer, E> hashMap = new HashMap<>();

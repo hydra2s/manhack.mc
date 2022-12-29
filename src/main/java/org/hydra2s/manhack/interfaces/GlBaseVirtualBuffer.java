@@ -1,6 +1,8 @@
-package org.hydra2s.manhack;
+package org.hydra2s.manhack.interfaces;
 
 //
+import org.hydra2s.manhack.UnifiedMap;
+import org.hydra2s.manhack.vulkan.GlVulkanSharedBuffer;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.util.vma.VmaVirtualAllocationCreateInfo;
 
@@ -16,7 +18,7 @@ import static org.lwjgl.system.MemoryUtil.memAllocLong;
 import static org.lwjgl.system.MemoryUtil.memAllocPointer;
 
 //
-public interface GlBufferSystem {
+public interface GlBaseVirtualBuffer {
     //
     public static Map<Integer, VirtualBufferObj> boundBuffers = new HashMap<Integer, VirtualBufferObj>() {{
 
@@ -31,7 +33,7 @@ public interface GlBufferSystem {
 
         //
         public VmaVirtualAllocationCreateInfo allocCreateInfo = null;
-        public GlSharedBufferSystem.VkSharedBuffer mapped = null;
+        public GlVulkanSharedBuffer.VkSharedBuffer mapped = null;
         public PointerBuffer allocId = null;
 
         //
@@ -85,6 +87,10 @@ public interface GlBufferSystem {
         public VirtualBufferObj data(int target, ByteBuffer data, int usage) {
             return this;
         }
+
+        public ByteBuffer map(int target, int access) {
+            return this.allocatedMemory;
+        }
     };
 
     // Dummy
@@ -92,31 +98,31 @@ public interface GlBufferSystem {
     }
 
     // Dummy
-    public static int glCreateVirtualBuffer() throws Exception {
+    public static int createVirtualBuffer() throws Exception {
         return -1;
     }
 
-    public static GlBufferSystem.VirtualBufferObj glAllocateVirtualBuffer(int target, long defaultSize, int usage) throws Exception {
+    public static VirtualBufferObj allocateVirtualBuffer(int target, long defaultSize, int usage) throws Exception {
         return boundBuffers.get(target).allocate(defaultSize, usage);
     }
 
-    public static GlBufferSystem.VirtualBufferObj glBindVirtualBuffer(int target, int glVirtual) throws Exception {
+    public static VirtualBufferObj bindVirtualBuffer(int target, int glVirtual) throws Exception {
         return virtualBufferMap.get(glVirtual).bind(target);
     }
 
-    public static GlBufferSystem.VirtualBufferObj glDeallocateVirtualBuffer(int glVirtualBuffer) throws Exception {
+    public static VirtualBufferObj deallocateVirtualBuffer(int glVirtualBuffer) throws Exception {
         return virtualBufferMap.get(glVirtualBuffer).deallocate();
     }
 
-    public static void glDeleteVirtualBuffer(int glVirtualBuffer) throws Exception {
+    public static void deleteVirtualBuffer(int glVirtualBuffer) throws Exception {
         virtualBufferMap.get(glVirtualBuffer).delete();
     }
 
-    public static GlBufferSystem.VirtualBufferObj glVirtualBufferData(int target, long data, int usage) throws Exception {
+    public static VirtualBufferObj virtualBufferData(int target, long data, int usage) throws Exception {
         return boundBuffers.get(target).allocate(data, usage).bindVertex();
     }
 
-    public static GlBufferSystem.VirtualBufferObj glVirtualBufferData(int target, ByteBuffer data, int usage) throws Exception {
+    public static VirtualBufferObj virtualBufferData(int target, ByteBuffer data, int usage) throws Exception {
         return boundBuffers.get(target).allocate(data.remaining(), usage).data(target, data, usage).bindVertex();
     }
 }

@@ -1,15 +1,20 @@
-package org.hydra2s.manhack;
+package org.hydra2s.manhack.vulkan;
 
+//
+import org.hydra2s.manhack.GlContext;
+import org.hydra2s.manhack.interfaces.GlBaseSharedBuffer;
 import org.hydra2s.noire.descriptors.MemoryAllocationCInfo;
 import org.hydra2s.noire.objects.MemoryAllocationObj;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.opengl.GL45;
 import org.lwjgl.util.vma.VmaVirtualBlockCreateInfo;
 
+//
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+//
 import static org.lwjgl.opengl.EXTMemoryObject.glCreateMemoryObjectsEXT;
 import static org.lwjgl.opengl.EXTMemoryObject.glNamedBufferStorageMemEXT;
 import static org.lwjgl.opengl.EXTMemoryObjectWin32.GL_HANDLE_TYPE_OPAQUE_WIN32_EXT;
@@ -22,12 +27,12 @@ import static org.lwjgl.vulkan.VK10.*;
 import static org.lwjgl.vulkan.VK12.VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
 //
-public class GlSharedBufferSystem {
+public class GlVulkanSharedBuffer implements GlBaseSharedBuffer {
 
     //
     public static void initialize() throws IOException {
-        resourceTargetMap = new HashMap<Integer, VkSharedBuffer>(){{
-            put(0, vkCreateBuffer(1024L * 1024L * 256L));
+        sharedBufferMap = new HashMap<Integer, VkSharedBuffer>(){{
+            put(0, createBuffer(1024L * 1024L * 256L));
         }};
         //initialize();
     };
@@ -45,11 +50,11 @@ public class GlSharedBufferSystem {
     };
 
     // TODO: support for typed (entity, indexed, blocks, etc.)
-    public static Map<Integer, VkSharedBuffer> resourceTargetMap = new HashMap<Integer, VkSharedBuffer>();
+    public static Map<Integer, VkSharedBuffer> sharedBufferMap = new HashMap<Integer, VkSharedBuffer>();
 
     // TODO: needs fully replace OpenGL buffer memory stack
     // TODO: needs immutable storage and ranges support
-    public static VkSharedBuffer vkCreateBuffer(long defaultSize) {
+    public static VkSharedBuffer createBuffer(long defaultSize) {
         VkSharedBuffer resource = new VkSharedBuffer();
         var _pipelineLayout = GlContext.rendererObj.pipelineLayout;
         var _memoryAllocator = GlContext.rendererObj.memoryAllocator;

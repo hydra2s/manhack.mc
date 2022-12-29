@@ -1,6 +1,7 @@
-package org.hydra2s.manhack;
+package org.hydra2s.manhack.virtual.buffer;
 
 //
+import org.hydra2s.manhack.interfaces.GlBaseVirtualBuffer;
 import org.lwjgl.opengl.GL20;
 import org.lwjgl.opengl.GL45;
 
@@ -13,19 +14,27 @@ import static org.lwjgl.opengl.GL11.glGetInteger;
 import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL30.GL_VERTEX_ARRAY_BINDING;
 
-//
-public class GlBetterBufferSystem implements GlBufferSystem {
-    public static class VirtualBufferObj extends GlBufferSystem.VirtualBufferObj {
+// OpenGL direct version
+public class GlDirectVirtualBuffer implements GlBaseVirtualBuffer {
+    public static class VirtualBufferObj extends GlBaseVirtualBuffer.VirtualBufferObj {
         // TODO: needs array mapping or not? (i.e. indexed wrapper or virtual ID)
         public VirtualBufferObj() {
             super();
-            virtualBufferMap.hashMap.put(this.glVirtualBuffer = GL45.glCreateBuffers(), this);
-            this.glStorageBuffer = this.glVirtualBuffer;
+            this.glStorageBuffer = GL45.glCreateBuffers();
+            //virtualBufferMap.hashMap.put(this.glVirtualBuffer = this.glStorageBuffer, this);
+
+            //
+            this.glVirtualBuffer = virtualBufferMap.arrayMap.push(this);
             System.out.println("Generated New Virtual Buffer! Id: " + this.glVirtualBuffer);
         }
 
         @Override
         public ByteBuffer map(int target, int access, long vkWholeSize, long i) {
+            return (this.allocatedMemory = GL45.glMapNamedBuffer(this.glVirtualBuffer, access));
+        }
+
+        @Override
+        public ByteBuffer map(int target, int access) {
             return (this.allocatedMemory = GL45.glMapNamedBuffer(this.glVirtualBuffer, access));
         }
 
@@ -102,7 +111,7 @@ public class GlBetterBufferSystem implements GlBufferSystem {
     };
 
     //
-    public static int glCreateVirtualBuffer() throws Exception {
+    public static int createVirtualBuffer() throws Exception {
         return (new VirtualBufferObj()).glVirtualBuffer;
     }
 
