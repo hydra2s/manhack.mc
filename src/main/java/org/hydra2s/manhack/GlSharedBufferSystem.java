@@ -23,6 +23,7 @@ import static org.lwjgl.vulkan.KHRAccelerationStructure.VK_BUFFER_USAGE_ACCELERA
 import static org.lwjgl.vulkan.VK10.*;
 import static org.lwjgl.vulkan.VK12.VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
+//
 public class GlSharedBufferSystem {
 
     //
@@ -42,9 +43,7 @@ public class GlSharedBufferSystem {
         public PointerBuffer vb;
 
         // also, is this full size
-        //public long lastOffset = 0L;
-        VmaVirtualBlockCreateInfo vbInfo = VmaVirtualBlockCreateInfo.create()
-                .flags(VMA_VIRTUAL_ALLOCATION_CREATE_STRATEGY_MIN_OFFSET_BIT | VMA_VIRTUAL_ALLOCATION_CREATE_STRATEGY_MIN_TIME_BIT | VMA_VIRTUAL_ALLOCATION_CREATE_STRATEGY_MIN_MEMORY_BIT);
+        VmaVirtualBlockCreateInfo vbInfo = VmaVirtualBlockCreateInfo.create().flags(VMA_VIRTUAL_ALLOCATION_CREATE_STRATEGY_MIN_OFFSET_BIT | VMA_VIRTUAL_ALLOCATION_CREATE_STRATEGY_MIN_TIME_BIT | VMA_VIRTUAL_ALLOCATION_CREATE_STRATEGY_MIN_MEMORY_BIT);
     };
 
     // TODO: support for typed (entity, indexed, blocks, etc.)
@@ -53,37 +52,34 @@ public class GlSharedBufferSystem {
     // TODO: needs fully replace OpenGL buffer memory stack
     // TODO: needs immutable storage and ranges support
     public static VkSharedBuffer vkCreateBuffer(long defaultSize) {
-        if (GlVirtualBufferSystem.VGL_VERSION_A) {
-            VkSharedBuffer resource = new VkSharedBuffer();
-            var _pipelineLayout = GlContext.rendererObj.pipelineLayout;
-            var _memoryAllocator = GlContext.rendererObj.memoryAllocator;
+        VkSharedBuffer resource = new VkSharedBuffer();
+        var _pipelineLayout = GlContext.rendererObj.pipelineLayout;
+        var _memoryAllocator = GlContext.rendererObj.memoryAllocator;
 
-            //
-            resource.obj = new MemoryAllocationObj.BufferObj(GlContext.rendererObj.logicalDevice.getHandle(), resource.bufferCreateInfo = new MemoryAllocationCInfo.BufferCInfo() {{
-                isHost = true;
-                isDevice = true;
-                size = defaultSize;
-                usage = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-                memoryAllocator = _memoryAllocator.getHandle().get();
-            }});
+        //
+        resource.obj = new MemoryAllocationObj.BufferObj(GlContext.rendererObj.logicalDevice.getHandle(), resource.bufferCreateInfo = new MemoryAllocationCInfo.BufferCInfo() {{
+            isHost = true;
+            isDevice = true;
+            size = defaultSize;
+            usage = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+            memoryAllocator = _memoryAllocator.getHandle().get();
+        }});
 
-            //
-            vmaCreateVirtualBlock(resource.vbInfo.size(resource.bufferCreateInfo.size), resource.vb = memAllocPointer(1));
-            if (resource.glMemory == 0) {
-                glImportMemoryWin32HandleEXT(resource.glMemory = glCreateMemoryObjectsEXT(), resource.bufferCreateInfo.size + resource.obj.memoryOffset, GL_HANDLE_TYPE_OPAQUE_WIN32_EXT, resource.obj.getWin32Handle().get(0));
-            }
-
-            //
-            int glBuffer = GL45.glCreateBuffers();
-            //int glBuffer = GL20.glGenBuffers();
-            glNamedBufferStorageMemEXT(glBuffer, resource.bufferCreateInfo.size, resource.glMemory, resource.obj.memoryOffset);
-            resource.glStorageBuffer = glBuffer;
-
-            // TODO: bind with GL object!
-            //GlContext.virtualBufferMap.put(glBuffer[0], resource);
-            return resource;
+        //
+        vmaCreateVirtualBlock(resource.vbInfo.size(resource.bufferCreateInfo.size), resource.vb = memAllocPointer(1));
+        if (resource.glMemory == 0) {
+            glImportMemoryWin32HandleEXT(resource.glMemory = glCreateMemoryObjectsEXT(), resource.bufferCreateInfo.size + resource.obj.memoryOffset, GL_HANDLE_TYPE_OPAQUE_WIN32_EXT, resource.obj.getWin32Handle().get(0));
         }
-        return null;
+
+        //
+        int glBuffer = GL45.glCreateBuffers();
+        //int glBuffer = GL20.glGenBuffers();
+        glNamedBufferStorageMemEXT(glBuffer, resource.bufferCreateInfo.size, resource.glMemory, resource.obj.memoryOffset);
+        resource.glStorageBuffer = glBuffer;
+
+        // TODO: bind with GL object!
+        //GlContext.virtualBufferMap.put(glBuffer[0], resource);
+        return resource;
     };
 
 
