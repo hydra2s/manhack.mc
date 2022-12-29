@@ -75,6 +75,7 @@ public class GlStateManagerMixin {
 
         //
         var bound = glGetInteger(GL_VERTEX_ARRAY_BINDING);
+        /*
         System.out.println("Used VAO: " + bound);
         System.out.println("Used override binding system!");
         System.out.println("Called `_vertexAttribPointer`:");
@@ -83,7 +84,7 @@ public class GlStateManagerMixin {
         System.out.println("Arg2 (type): " + type);
         System.out.println("Arg3 (normalized): " + normalized);
         System.out.println("Arg4 (stride): " + stride);
-        System.out.println("Arg5 (pointer): " + pointer);
+        System.out.println("Arg5 (pointer): " + pointer);*/
 
         // TODO: replace a VAO binding stack!
         // TODO: deferred vertex pointer system!
@@ -114,6 +115,7 @@ public class GlStateManagerMixin {
 
         //
         var bound = glGetInteger(GL_VERTEX_ARRAY_BINDING);
+        /*
         System.out.println("Used VAO: " + bound);
         System.out.println("Used override binding system!");
         System.out.println("Called `_vertexAttribIPointer`:");
@@ -121,7 +123,7 @@ public class GlStateManagerMixin {
         System.out.println("Arg1 (size): " + size);
         System.out.println("Arg2 (type): " + type);
         System.out.println("Arg3 (stride): " + stride);
-        System.out.println("Arg4 (pointer): " + pointer);
+        System.out.println("Arg4 (pointer): " + pointer);*/
 
         // TODO: replace a VAO binding stack!
         // TODO: deferred vertex pointer system!
