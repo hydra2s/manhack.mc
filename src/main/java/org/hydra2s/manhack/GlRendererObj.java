@@ -105,7 +105,7 @@ public class GlRendererObj extends BasicObj {
             pipelineLayout = _pipelineLayout.getHandle().get();
 
             extents = new ArrayList<>(){{
-                add(VkExtent3D.create().width(1280).height(720).depth(1));
+                add(VkExtent3D.calloc().width(1280).height(720).depth(1));
             }};
             formats = memAllocInt(1).put(0, VK_FORMAT_R32G32B32A32_SFLOAT);
             layerCounts = new ArrayList<>(){{
@@ -113,15 +113,15 @@ public class GlRendererObj extends BasicObj {
             }};
 
             //
-            blendAttachments = VkPipelineColorBlendAttachmentState.create(1);
+            blendAttachments = VkPipelineColorBlendAttachmentState.calloc(1);
             blendAttachments.get(0)
                 .blendEnable(false)
                 .colorWriteMask(VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT);
 
             //
-            attachmentInfos = VkRenderingAttachmentInfo.create(1);
+            attachmentInfos = VkRenderingAttachmentInfo.calloc(1);
             attachmentInfos.get(0)
-                .clearValue(VkClearValue.create().color(VkClearColorValue.create()
+                .clearValue(VkClearValue.calloc().color(VkClearColorValue.calloc()
                     .float32(memAllocFloat(4)
                         .put(0, 0.0F)
                         .put(1, 0.0F)
@@ -130,17 +130,17 @@ public class GlRendererObj extends BasicObj {
                     )));
 
             // TODO: support only depth or only stencil
-            depthStencilAttachmentInfo = VkRenderingAttachmentInfo.create()
-                .clearValue(VkClearValue.create().depthStencil(VkClearDepthStencilValue.create()
+            depthStencilAttachmentInfo = VkRenderingAttachmentInfo.calloc()
+                .clearValue(VkClearValue.calloc().depthStencil(VkClearDepthStencilValue.calloc()
                     .depth(1.0F)
                     .stencil(0)));
 
             // TODO: support only depth or only stencil
             depthStencilFormat = VK_FORMAT_D32_SFLOAT_S8_UINT;
-            scissor = VkRect2D.create()
-                .extent(VkExtent2D.create().width(1280).height(720))
-                .offset(VkOffset2D.create().x(0).y(0));
-            viewport = VkViewport.create()
+            scissor = VkRect2D.calloc()
+                .extent(VkExtent2D.calloc().width(1280).height(720))
+                .offset(VkOffset2D.calloc().x(0).y(0));
+            viewport = VkViewport.calloc()
                 .x(0.F).y(0.F)
                 .width(1280.F).height(720.F)
                 .minDepth(0.F).maxDepth(1.F);
@@ -227,7 +227,7 @@ public class GlRendererObj extends BasicObj {
         instanceInfo.mask(0xFF);
         instanceInfo.accelerationStructureReference(this.bottomLvl.getDeviceAddress());
         instanceInfo.flags(0);
-        instanceInfo.transform(VkTransformMatrixKHR.create().matrix(memAllocFloat(12).put(0, new float[]{
+        instanceInfo.transform(VkTransformMatrixKHR.calloc().matrix(memAllocFloat(12).put(0, new float[]{
             1.0F, 0.0F, 0.0F, 0.0F,
             0.0F, 1.0F, 0.0F, 0.0F,
             0.0F, 0.0F, 1.0F, 0.0F
@@ -248,7 +248,7 @@ public class GlRendererObj extends BasicObj {
         this.submitOnce((cmdBuf)->{
 
             triangleBuffer.cmdSynchronizeFromHost(cmdBuf);
-            this.bottomLvl.cmdBuild(cmdBuf, VkAccelerationStructureBuildRangeInfoKHR.create(1)
+            this.bottomLvl.cmdBuild(cmdBuf, VkAccelerationStructureBuildRangeInfoKHR.calloc(1)
                     .primitiveCount(1)
                     .firstVertex(0)
                     .primitiveOffset(0)
@@ -256,7 +256,7 @@ public class GlRendererObj extends BasicObj {
                     VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR);
 
             instanceBuffer.cmdSynchronizeFromHost(cmdBuf);
-            this.topLvl.cmdBuild(cmdBuf, VkAccelerationStructureBuildRangeInfoKHR.create(1)
+            this.topLvl.cmdBuild(cmdBuf, VkAccelerationStructureBuildRangeInfoKHR.calloc(1)
                     .primitiveCount(1)
                     .firstVertex(0)
                     .primitiveOffset(0)
@@ -332,8 +332,8 @@ public class GlRendererObj extends BasicObj {
             memLongBuffer(memAddress(pushConst, 2), 1).put(0, this.topLvl.getDeviceAddress());
 
             this.logicalDevice.writeCommand(cmdBuf, (_cmdBuf_)->{
-                this.trianglePipeline.cmdDraw(cmdBuf, VkMultiDrawInfoEXT.create(1).put(0, VkMultiDrawInfoEXT.create().vertexCount(3).firstVertex(0)), this.framebuffer.getHandle().get(), memByteBuffer(pushConst), 0);
-                this.finalComp.cmdDispatch(cmdBuf, VkExtent3D.create().width(1280/32).height(720/6).depth(1), memByteBuffer(pushConst), 0);
+                this.trianglePipeline.cmdDraw(cmdBuf, VkMultiDrawInfoEXT.calloc(1).put(0, VkMultiDrawInfoEXT.calloc().vertexCount(3).firstVertex(0)), this.framebuffer.getHandle().get(), memByteBuffer(pushConst), 0);
+                this.finalComp.cmdDispatch(cmdBuf, VkExtent3D.calloc().width(1280/32).height(720/6).depth(1), memByteBuffer(pushConst), 0);
                 return VK_SUCCESS;
             });
 
@@ -356,7 +356,7 @@ public class GlRendererObj extends BasicObj {
 
         //
         /*this.window = new WindowObj(this.instance.handle, new WindowCInfo(){{
-            size = VkExtent2D.create().width(1280).height(720);
+            size = VkExtent2D.calloc().width(1280).height(720);
             pipelineLayout = _pipelineLayout.handle.get();
         }});*/
 
@@ -365,7 +365,7 @@ public class GlRendererObj extends BasicObj {
             pipelineLayout = _pipelineLayout.getHandle().get();
             queueFamilyIndex = 0;
             memoryAllocator = _memoryAllocator.getHandle().get();
-            extent = VkExtent2D.create().width(1280).height(720);
+            extent = VkExtent2D.calloc().width(1280).height(720);
         }});
 
         //
@@ -374,7 +374,7 @@ public class GlRendererObj extends BasicObj {
 
         // EXAMPLE!
         for (var I=0;I<fences.remaining();I++) {
-            vkCreateFence(logicalDevice.device, VkFenceCreateInfo.create().sType(VK_STRUCTURE_TYPE_FENCE_CREATE_INFO).flags(VK_FENCE_CREATE_SIGNALED_BIT), null, fences.slice(I, 1));
+            vkCreateFence(logicalDevice.device, VkFenceCreateInfo.calloc().sType(VK_STRUCTURE_TYPE_FENCE_CREATE_INFO).flags(VK_FENCE_CREATE_SIGNALED_BIT), null, fences.slice(I, 1));
             this.promises.add(new Promise<Integer>());
         }
 

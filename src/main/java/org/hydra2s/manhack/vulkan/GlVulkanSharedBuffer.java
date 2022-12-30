@@ -31,13 +31,17 @@ public class GlVulkanSharedBuffer implements GlBaseSharedBuffer {
 
     //
     public static void initialize() throws IOException {
+
+        //
         sharedBufferMap = new HashMap<Integer, VkSharedBuffer>(){{
-            put(0, createBuffer(1024L * 1024L * 1024L));
+            put(0, createBuffer(1024L * 1024L * 1024L, true));  // for GL shared memory!!!
+            put(1, createBuffer(1024L * 1024L * 1024L, false)); // for temp memory
         }};
         //initialize();
     };
 
     //
+    // TODO: use polymorphism in this case
     static public class VkSharedBuffer {
         public int glMemory = 0;
         public int glStorageBuffer = 0;
@@ -46,41 +50,39 @@ public class GlVulkanSharedBuffer implements GlBaseSharedBuffer {
         public PointerBuffer vb;
 
         // also, is this full size
-        VmaVirtualBlockCreateInfo vbInfo = VmaVirtualBlockCreateInfo.create().flags(VMA_VIRTUAL_ALLOCATION_CREATE_STRATEGY_MIN_OFFSET_BIT | VMA_VIRTUAL_ALLOCATION_CREATE_STRATEGY_MIN_TIME_BIT | VMA_VIRTUAL_ALLOCATION_CREATE_STRATEGY_MIN_MEMORY_BIT);
+        VmaVirtualBlockCreateInfo vbInfo = VmaVirtualBlockCreateInfo.calloc().flags(VMA_VIRTUAL_ALLOCATION_CREATE_STRATEGY_MIN_OFFSET_BIT | VMA_VIRTUAL_ALLOCATION_CREATE_STRATEGY_MIN_TIME_BIT | VMA_VIRTUAL_ALLOCATION_CREATE_STRATEGY_MIN_MEMORY_BIT);
     };
 
     // TODO: support for typed (entity, indexed, blocks, etc.)
     public static Map<Integer, VkSharedBuffer> sharedBufferMap = new HashMap<Integer, VkSharedBuffer>();
 
-    // TODO: needs fully replace OpenGL buffer memory stack
-    // TODO: needs immutable storage and ranges support
-    public static VkSharedBuffer createBuffer(long defaultSize) {
-        VkSharedBuffer resource = new VkSharedBuffer();
+    // TODO: add host-based memory support (as version)
+    public static VkSharedBuffer createBuffer(long defaultSize, boolean isHost) {
+        VkSharedBuffer sharedBuffer = new VkSharedBuffer();
         var _pipelineLayout = GlContext.rendererObj.pipelineLayout;
         var _memoryAllocator = GlContext.rendererObj.memoryAllocator;
 
         //
-        resource.obj = new MemoryAllocationObj.BufferObj(GlContext.rendererObj.logicalDevice.getHandle(), resource.bufferCreateInfo = new MemoryAllocationCInfo.BufferCInfo() {{
-            isHost = true;
-            isDevice = true;
+        sharedBuffer.obj = new MemoryAllocationObj.BufferObj(GlContext.rendererObj.logicalDevice.getHandle(), sharedBuffer.bufferCreateInfo = new MemoryAllocationCInfo.BufferCInfo() {{
+            isHost = isHost; // false if !isHost and there is no resizableBAR support
+            isDevice = !isHost;
             size = defaultSize;
             usage = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
             memoryAllocator = _memoryAllocator.getHandle().get();
         }});
 
         //
-        vmaCreateVirtualBlock(resource.vbInfo.size(resource.bufferCreateInfo.size), resource.vb = memAllocPointer(1));
-        if (resource.glMemory == 0) {
-            glImportMemoryWin32HandleEXT(resource.glMemory = glCreateMemoryObjectsEXT(), resource.bufferCreateInfo.size + resource.obj.memoryOffset, GL_HANDLE_TYPE_OPAQUE_WIN32_EXT, resource.obj.getWin32Handle().get(0));
+        vmaCreateVirtualBlock(sharedBuffer.vbInfo.size(sharedBuffer.bufferCreateInfo.size), sharedBuffer.vb = memAllocPointer(1));
+        if (sharedBuffer.glMemory == 0) {
+            glImportMemoryWin32HandleEXT(sharedBuffer.glMemory = glCreateMemoryObjectsEXT(), sharedBuffer.obj.memoryRequirements2.memoryRequirements().size(), GL_HANDLE_TYPE_OPAQUE_WIN32_EXT, sharedBuffer.obj.getWin32Handle().get(0));
         }
 
         //
-        glNamedBufferStorageMemEXT(resource.glStorageBuffer = GL45.glCreateBuffers(), resource.bufferCreateInfo.size, resource.glMemory, resource.obj.memoryOffset);
+        glNamedBufferStorageMemEXT(sharedBuffer.glStorageBuffer = GL45.glCreateBuffers(), sharedBuffer.bufferCreateInfo.size, sharedBuffer.glMemory, sharedBuffer.obj.memoryOffset);
 
         // TODO: bind with GL object!
-        //GlContext.virtualBufferMap.put(glBuffer[0], resource);
-        return resource;
+        //GlContext.virtualBufferMap.put(glBuffer[0], sharedBuffer);
+        return sharedBuffer;
     };
-
 
 }

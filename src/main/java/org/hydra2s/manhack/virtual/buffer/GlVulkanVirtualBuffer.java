@@ -3,18 +3,19 @@ package org.hydra2s.manhack.virtual.buffer;
 //
 import org.hydra2s.manhack.interfaces.GlBaseVirtualBuffer;
 import org.hydra2s.manhack.vulkan.GlVulkanSharedBuffer;
-import org.lwjgl.opengl.GL20;
-import org.lwjgl.opengl.GL45;
 
 //
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
 //
-import static org.lwjgl.opengl.GL15.GL_ARRAY_BUFFER;
-import static org.lwjgl.opengl.GL30.glGetInteger;
-import static org.lwjgl.opengl.GL30.*;
+import static org.lwjgl.opengl.GL11.GL_UNSIGNED_BYTE;
+import static org.lwjgl.opengl.GL30.GL_R8UI;
+import static org.lwjgl.opengl.GL30.GL_RED_INTEGER;
+import static org.lwjgl.opengl.GL45.glClearNamedBufferSubData;
 import static org.lwjgl.opengl.GL45.glNamedBufferSubData;
+import static org.lwjgl.system.MemoryUtil.memAlloc;
+import static org.lwjgl.system.MemoryUtil.memFree;
 import static org.lwjgl.util.vma.Vma.*;
 import static org.lwjgl.vulkan.VK10.*;
 
@@ -31,8 +32,7 @@ public class GlVulkanVirtualBuffer implements GlBaseVirtualBuffer {
             super();
 
             // TODO: support for typed (entity, indexed, blocks, etc.)
-            this.mapped = GlVulkanSharedBuffer.sharedBufferMap.get(0);
-            if (this.mapped != null) {
+            if ((this.mapped = GlVulkanSharedBuffer.sharedBufferMap.get(0)) != null) {
                 this.glStorageBuffer = this.mapped.glStorageBuffer;
             }
         }
@@ -51,19 +51,23 @@ public class GlVulkanVirtualBuffer implements GlBaseVirtualBuffer {
         @Override
         public GlBaseVirtualBuffer.VirtualBufferObj deallocate() throws Exception {
             this.assert_();
-            vmaVirtualFree(this.mapped.vb.get(0), this.allocId.get(0));
-            System.out.println("Deallocated Virtual Buffer! Id: " + this.glVirtualBuffer);
-            this.size = 0L;
-            this.offset.put(0, 0L);
-            this.glStorageBuffer = -1;
-            return this;
-        }
+            if (this.allocId.get(0) != 0) {
+                if (this.glStorageBuffer > 0) {
+                    glClearNamedBufferSubData(this.glStorageBuffer, GL_R8UI, this.offset.get(0), this.size, GL_RED_INTEGER, GL_UNSIGNED_BYTE, memAlloc(1).put(0, (byte) 0));
+                }
 
-        @Override
-        public void delete() throws Exception {
-            virtualBufferMap.removeMem(this.deallocate());
-            System.out.println("Deleted Virtual Buffer! Id: " + this.glVirtualBuffer);
-            this.glVirtualBuffer = -1;
+                //
+                this.size = 0L;
+                this.offset.put(0, 0L);
+
+                //
+                if (this.mapped != null) {
+                    vmaVirtualFree(this.mapped.vb.get(0), this.allocId.get(0));
+                }
+
+                this.allocId.put(0, 0L);
+            }
+            return this;
         }
 
         //

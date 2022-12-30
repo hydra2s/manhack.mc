@@ -13,8 +13,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.lwjgl.opengl.EXTMemoryObject.glCreateMemoryObjectsEXT;
-
 //
 public class GlContext {
     public static boolean worldRendering = false;
@@ -25,7 +23,9 @@ public class GlContext {
         rendererObj = new GlRendererObj(null, new RendererCInfo(){
 
         });
-        GlVulkanSharedBuffer.initialize();
+
+        //
+        GlVulkanSharedBuffer.initialize(); // most stable!
         //GlDirectSharedBuffer.initialize();
     };
 

@@ -23,7 +23,7 @@ import static org.lwjgl.util.vma.Vma.vmaCreateVirtualBlock;
 //
 public class GlDirectSharedBuffer {
 
-    //
+    // TODO: no, this is peace of sheat...
     public static void initialize() throws IOException {
         sharedBufferMap = new HashMap<Integer, GlSharedBuffer>(){{
             put(0, createBuffer(1024L * 1024L * 1024L));
@@ -31,20 +31,23 @@ public class GlDirectSharedBuffer {
         //initialize();
     };
 
-    //
+    // Originally, planned to use only on host
+    // GPU have no much memory space (except most expensive)
+    // OpenGL doesn't support host-based memory by default
+    // That feature is supported only by Vulkan API
+    // TODO: use polymorphism in this case
     static public class GlSharedBuffer {
         public int glStorageBuffer = 0;
         public PointerBuffer vb;
 
         // also, is this full size
-        VmaVirtualBlockCreateInfo vbInfo = VmaVirtualBlockCreateInfo.create().flags(VMA_VIRTUAL_ALLOCATION_CREATE_STRATEGY_MIN_OFFSET_BIT | VMA_VIRTUAL_ALLOCATION_CREATE_STRATEGY_MIN_TIME_BIT | VMA_VIRTUAL_ALLOCATION_CREATE_STRATEGY_MIN_MEMORY_BIT);
+        VmaVirtualBlockCreateInfo vbInfo = VmaVirtualBlockCreateInfo.calloc().flags(VMA_VIRTUAL_ALLOCATION_CREATE_STRATEGY_MIN_OFFSET_BIT | VMA_VIRTUAL_ALLOCATION_CREATE_STRATEGY_MIN_TIME_BIT | VMA_VIRTUAL_ALLOCATION_CREATE_STRATEGY_MIN_MEMORY_BIT);
     };
 
     // TODO: support for typed (entity, indexed, blocks, etc.)
     public static Map<Integer, GlSharedBuffer> sharedBufferMap = new HashMap<Integer, GlSharedBuffer>();
 
-    // TODO: needs fully replace OpenGL buffer memory stack
-    // TODO: needs immutable storage and ranges support
+    // TODO: OpenGL Large Buffer is really BAD idea!
     public static GlSharedBuffer createBuffer(long defaultSize) {
         GlSharedBuffer resource = new GlSharedBuffer();
         var _pipelineLayout = GlContext.rendererObj.pipelineLayout;

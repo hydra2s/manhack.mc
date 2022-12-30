@@ -68,9 +68,10 @@ public interface GlBaseVirtualBuffer {
         public void delete() throws Exception {
             this.assert_();
             virtualBufferMap.removeMem(this.deallocate());
-            this.size = 0L;
+            //System.out.println("Deleted Virtual Buffer! Id: " + this.glVirtualBuffer);
             this.glVirtualBuffer = -1;
             this.glStorageBuffer = -1;
+            this.size = 0L;
         }
 
         public VirtualBufferObj assert_() throws Exception {
@@ -123,7 +124,7 @@ public interface GlBaseVirtualBuffer {
         public VirtualBufferObj() {
             this.offset = memAllocLong(1).put(0, 0L);
             this.allocId = memAllocPointer(1).put(0, 0L);
-            this.allocCreateInfo = VmaVirtualAllocationCreateInfo.create().alignment(4L);
+            this.allocCreateInfo = VmaVirtualAllocationCreateInfo.calloc().alignment(16L);
             this.glVirtualBuffer = virtualBufferMap.arrayMap.push(this);
             this.glStorageBuffer = -1;
             this.allocatedMemory = null;

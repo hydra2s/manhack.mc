@@ -46,7 +46,7 @@ public class GlVulkanSharedTexture implements GlBaseSharedTexture {
             VkSharedImage sharedImage = sharedImageMap.get(id);
             if (sharedImage == null) {
                 sharedImage = new VkSharedImage();
-                sharedImage.extent = VkExtent3D.create();
+                sharedImage.extent = VkExtent3D.calloc();
                 sharedImage.extent.set(width, height, 1);
 
                 //
@@ -82,7 +82,7 @@ public class GlVulkanSharedTexture implements GlBaseSharedTexture {
                 // TODO: use DSA! Needs avoid using binding...
                 glBindTexture(GL_TEXTURE_2D, id);
                 if (sharedImage.glMemory == 0) {
-                    glImportMemoryWin32HandleEXT(sharedImage.glMemory = glCreateMemoryObjectsEXT(), width * height * 4, GL_HANDLE_TYPE_OPAQUE_WIN32_EXT, sharedImage.obj.getWin32Handle().get(0));
+                    glImportMemoryWin32HandleEXT(sharedImage.glMemory = glCreateMemoryObjectsEXT(), sharedImage.obj.memoryRequirements2.memoryRequirements().size(), GL_HANDLE_TYPE_OPAQUE_WIN32_EXT, sharedImage.obj.getWin32Handle().get(0));
                 }
                 glTexStorageMem2DEXT(GL_TEXTURE_2D, maxLevel + 1, glFormat, width, height, sharedImage.glMemory, sharedImage.obj.memoryOffset);
 

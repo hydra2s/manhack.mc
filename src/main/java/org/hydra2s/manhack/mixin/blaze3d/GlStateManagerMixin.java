@@ -42,7 +42,7 @@ public class GlStateManagerMixin {
     public static void _vertexAttribPointer(int index, int size, int type, boolean normalized, int stride, long pointer) throws Exception {
         RenderSystem.assertOnRenderThread();
 
-        // TODO: needs to replace to external
+        // TODO: needs to replace to external system
         var glVao = glGetInteger(GL_VERTEX_ARRAY_BINDING);
 
         //
@@ -65,7 +65,7 @@ public class GlStateManagerMixin {
     public static void _vertexAttribIPointer(int index, int size, int type, int stride, long pointer) throws Exception {
         RenderSystem.assertOnRenderThread();
 
-        // TODO: needs to replace to external
+        // TODO: needs to replace to external system
         var glVao = glGetInteger(GL_VERTEX_ARRAY_BINDING);
 
         //
@@ -113,7 +113,8 @@ public class GlStateManagerMixin {
     public static int _glGenBuffers() throws Exception {
         RenderSystem.assertOnRenderThreadOrInit();
         if (GlContext.worldRendering) {
-            return GlVulkanVirtualBuffer.createVirtualBuffer();
+            //return GlHostVirtualBuffer.createVirtualBuffer();
+            return GlVulkanVirtualBuffer.createVirtualBuffer(); // currently, most stable for GL rendering
         }
         return GlDirectVirtualBuffer.createVirtualBuffer();
     }
