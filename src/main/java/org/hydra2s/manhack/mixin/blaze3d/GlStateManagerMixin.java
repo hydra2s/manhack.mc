@@ -25,6 +25,8 @@ import static org.lwjgl.opengl.GL11.glGetInteger;
 import static org.lwjgl.opengl.GL15.GL_ARRAY_BUFFER;
 import static org.lwjgl.opengl.GL15.GL_ELEMENT_ARRAY_BUFFER;
 import static org.lwjgl.opengl.GL30.GL_VERTEX_ARRAY_BINDING;
+import static org.lwjgl.opengl.GL42.*;
+import static org.lwjgl.opengl.GL44.GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT;
 
 //
 // TODO: connect with virtual GL system!
@@ -97,6 +99,7 @@ public class GlStateManagerMixin {
 
         //
         vVBO.preDraw(); iVBO.preDraw();
+        GL45.glMemoryBarrier(GL_ELEMENT_ARRAY_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT | GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
         GL11.glDrawElements(mode, count, type, indices + iVBO.offset.get(0));
         vVBO.postDraw(); iVBO.postDraw();
     }
