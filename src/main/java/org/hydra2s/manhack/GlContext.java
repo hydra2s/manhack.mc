@@ -26,7 +26,7 @@ public class GlContext {
 
         });
         //GlVulkanSharedBuffer.initialize();
-        //GlDirectSharedBuffer.initialize();
+        GlDirectSharedBuffer.initialize();
     };
 
     //

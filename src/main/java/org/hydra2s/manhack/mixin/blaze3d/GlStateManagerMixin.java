@@ -4,8 +4,11 @@ package org.hydra2s.manhack.mixin.blaze3d;
 import com.mojang.blaze3d.platform.GlConst;
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
+import org.hydra2s.manhack.GlContext;
 import org.hydra2s.manhack.interfaces.GlBaseVirtualBuffer;
+import org.hydra2s.manhack.opengl.GlDirectSharedBuffer;
 import org.hydra2s.manhack.virtual.buffer.GlDirectVirtualBuffer;
+import org.hydra2s.manhack.virtual.buffer.GlHostVirtualBuffer;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL45;
@@ -108,6 +111,9 @@ public class GlStateManagerMixin {
     @Overwrite(remap = false)
     public static int _glGenBuffers() throws Exception {
         RenderSystem.assertOnRenderThreadOrInit();
+        if (GlContext.worldRendering) {
+            return GlHostVirtualBuffer.createVirtualBuffer();
+        }
         return GlDirectVirtualBuffer.createVirtualBuffer();
     }
 

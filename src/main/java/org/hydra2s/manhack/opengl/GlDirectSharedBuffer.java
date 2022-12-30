@@ -55,8 +55,8 @@ public class GlDirectSharedBuffer {
         vmaCreateVirtualBlock(resource.vbInfo.size(defaultSize), resource.vb = memAllocPointer(1));
 
         //
-        GL45.glNamedBufferStorage(resource.glStorageBuffer = GL45.glCreateBuffers(), defaultSize, GL_CLIENT_STORAGE_BIT | GL_DYNAMIC_STORAGE_BIT | GL_MAP_READ_BIT | GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
-        //GL45.glNamedBufferData(resource.glStorageBuffer = GL45.glCreateBuffers(), defaultSize, GL_DYNAMIC_DRAW);
+        //GL45.glNamedBufferStorage(resource.glStorageBuffer = GL45.glCreateBuffers(), defaultSize, GL_CLIENT_STORAGE_BIT | GL_DYNAMIC_STORAGE_BIT | GL_MAP_READ_BIT | GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+        GL45.glNamedBufferData(resource.glStorageBuffer = GL45.glCreateBuffers(), defaultSize, GL_DYNAMIC_DRAW);
 
         return resource;
     };
