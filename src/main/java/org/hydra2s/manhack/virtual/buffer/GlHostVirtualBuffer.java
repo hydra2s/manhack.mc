@@ -65,9 +65,11 @@ public class GlHostVirtualBuffer implements GlBaseVirtualBuffer {
 
         @Override
         public GlBaseVirtualBuffer.VirtualBufferObj allocate(long defaultSize, int usage) throws Exception {
-            if (this.allocatedMemory == null || defaultSize != this.size) {
+            long MEM_BLOCK = 98304L;
+            defaultSize = roundUp(defaultSize, MEM_BLOCK) * MEM_BLOCK;
+            if (/*this.assert_().allocatedMemory == null ||*/ this.size != defaultSize) {
                 this.deallocate();
-                this.allocatedMemory = memAlloc((int) (this.size = defaultSize));
+                //this.allocatedMemory = memAlloc((int) (this.size = defaultSize));
 
                 // TODO: temp-alloc
                 int res = vmaVirtualAllocate(this.mapped.vb.get(0), this.allocCreateInfo.size(this.size = defaultSize), this.allocId.put(0, 0L), this.offset.put(0, 0L));

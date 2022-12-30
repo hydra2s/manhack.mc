@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 //
+import static java.lang.Math.abs;
 import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL30.GL_VERTEX_ARRAY_BINDING;
 import static org.lwjgl.system.MemoryUtil.memAllocLong;
@@ -115,8 +116,14 @@ public interface GlBaseVirtualBuffer {
             return this.bindVertex();
         }
 
+        public static long roundUp(long num, long divisor) {
+            int sign = (num > 0 ? 1 : -1) * (divisor > 0 ? 1 : -1);
+            return sign * (abs(num) + abs(divisor) - 1) / abs(divisor);
+        }
+
         public VirtualBufferObj allocate(long defaultSize, int usage) throws Exception {
-            this.size = defaultSize;
+            long MEM_BLOCK = 98304L;
+            this.size = roundUp(defaultSize, MEM_BLOCK) * MEM_BLOCK;
             return this;
         }
 
@@ -132,12 +139,12 @@ public interface GlBaseVirtualBuffer {
         }
 
         public VirtualBufferObj data(int target, ByteBuffer data, int usage) throws Exception {
-            this.size = data.remaining();
+            //this.size = data.remaining();
             return this.bindVertex();
         }
 
         public VirtualBufferObj data(int target, long size, int usage) throws Exception {
-            this.size = size;
+            //this.size = size;
             return this.bindVertex();
         }
     };

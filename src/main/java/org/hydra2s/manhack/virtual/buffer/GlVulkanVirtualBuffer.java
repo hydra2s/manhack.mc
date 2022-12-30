@@ -73,6 +73,8 @@ public class GlVulkanVirtualBuffer implements GlBaseVirtualBuffer {
         //
         @Override
         public GlBaseVirtualBuffer.VirtualBufferObj allocate(long defaultSize, int usage) throws Exception {
+            long MEM_BLOCK = 98304L;
+            defaultSize = roundUp(defaultSize, MEM_BLOCK) * MEM_BLOCK;
             if (this.assert_().size != defaultSize)
             {
                 System.out.println("WARNING! Size of virtual buffer was changed! " + this.size + " != " + defaultSize);
@@ -99,7 +101,7 @@ public class GlVulkanVirtualBuffer implements GlBaseVirtualBuffer {
             if (this.glStorageBuffer > 0) {
                 glNamedBufferSubData(this.glStorageBuffer, this.offset.get(0), data);
             }
-            this.size = data.remaining();
+            //this.size = data.remaining();
             return this.bindVertex();
         }
     }
