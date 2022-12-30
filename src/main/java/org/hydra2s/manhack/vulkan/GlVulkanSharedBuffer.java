@@ -32,7 +32,8 @@ public class GlVulkanSharedBuffer implements GlBaseSharedBuffer {
     //
     public static void initialize() throws IOException {
         sharedBufferMap = new HashMap<Integer, VkSharedBuffer>(){{
-            put(0, createBuffer(1024L * 1024L * 256L));
+            put(0, createBuffer(1024L * 1024L * 256L)); // for vertices
+            put(1, createBuffer(1024L * 1024L * 256L)); // for indices
         }};
         //initialize();
     };
@@ -75,10 +76,7 @@ public class GlVulkanSharedBuffer implements GlBaseSharedBuffer {
         }
 
         //
-        int glBuffer = GL45.glCreateBuffers();
-        //int glBuffer = GL20.glGenBuffers();
-        glNamedBufferStorageMemEXT(glBuffer, resource.bufferCreateInfo.size, resource.glMemory, resource.obj.memoryOffset);
-        resource.glStorageBuffer = glBuffer;
+        glNamedBufferStorageMemEXT(resource.glStorageBuffer = GL45.glCreateBuffers(), resource.bufferCreateInfo.size, resource.glMemory, resource.obj.memoryOffset);
 
         // TODO: bind with GL object!
         //GlContext.virtualBufferMap.put(glBuffer[0], resource);

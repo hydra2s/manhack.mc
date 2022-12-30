@@ -5,7 +5,7 @@ import com.mojang.blaze3d.platform.GlConst;
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import org.hydra2s.manhack.interfaces.GlBaseVirtualBuffer;
-import org.hydra2s.manhack.virtual.buffer.GlVulkanVirtualBuffer;
+import org.hydra2s.manhack.virtual.buffer.GlDirectVirtualBuffer;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL45;
@@ -13,8 +13,10 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
 
+//
 import java.nio.ByteBuffer;
 
+//
 import static org.lwjgl.opengl.GL11.glGetInteger;
 import static org.lwjgl.opengl.GL15.GL_ARRAY_BUFFER;
 import static org.lwjgl.opengl.GL15.GL_ELEMENT_ARRAY_BUFFER;
@@ -82,10 +84,17 @@ public class GlStateManagerMixin {
     public static void _drawElements(int mode, int count, int type, long indices) throws Exception {
         RenderSystem.assertOnRenderThread();
 
-        // Here is problems...
-        // TODO: replace draw elements by host memory operations
-        var VBO = GlBaseVirtualBuffer.boundBuffers.get(GL_ELEMENT_ARRAY_BUFFER);
-        GL11.glDrawElements(mode, count, type, indices + VBO.offset.get(0));
+        // Here is shared vulkan problems...
+        // Vulkan API isn't know about memory mapping.
+        var iVBO = GlBaseVirtualBuffer.boundBuffers.get(GL_ELEMENT_ARRAY_BUFFER);
+
+        // TODO: support multiple vertex bound buffers
+        var vVBO = GlBaseVirtualBuffer.boundBuffers.get(GL_ARRAY_BUFFER);
+
+        //
+        vVBO.preDraw(); iVBO.preDraw();
+        GL11.glDrawElements(mode, count, type, indices + iVBO.offset.get(0));
+        vVBO.postDraw(); iVBO.postDraw();
     }
 
 
@@ -99,7 +108,7 @@ public class GlStateManagerMixin {
     @Overwrite(remap = false)
     public static int _glGenBuffers() throws Exception {
         RenderSystem.assertOnRenderThreadOrInit();
-        return GlVulkanVirtualBuffer.createVirtualBuffer();
+        return GlDirectVirtualBuffer.createVirtualBuffer();
     }
 
     /**
@@ -109,7 +118,7 @@ public class GlStateManagerMixin {
     @Overwrite
     public static void _glBindBuffer(int target, int glVirtualBuffer) throws Exception {
         RenderSystem.assertOnRenderThreadOrInit();
-        GlBaseVirtualBuffer.bindVirtualBuffer(target, glVirtualBuffer);
+        GlBaseVirtualBuffer.virtualBufferMap.get(glVirtualBuffer).bind(target);
     }
 
     /**
@@ -119,7 +128,7 @@ public class GlStateManagerMixin {
     @Overwrite
     public static void _glBufferData(int target, ByteBuffer data, int usage) throws Exception {
         RenderSystem.assertOnRenderThreadOrInit();
-        GlBaseVirtualBuffer.virtualBufferData(target, data, usage);
+        GlBaseVirtualBuffer.boundBuffers.get(target).allocate(data.remaining(), usage).data(target, data, usage);
     }
 
     /**
@@ -129,7 +138,7 @@ public class GlStateManagerMixin {
     @Overwrite
     public static void _glBufferData(int target, long size, int usage) throws Exception {
         RenderSystem.assertOnRenderThreadOrInit();
-        GlBaseVirtualBuffer.virtualBufferData(target, size, usage);
+        GlBaseVirtualBuffer.boundBuffers.get(target).allocate(size, usage).data(target, size, usage);
     }
 
     /**

@@ -1,4 +1,4 @@
-package org.hydra2s.manhack.mixin.interfaces;
+package org.hydra2s.manhack.ducks.blaze3d;
 
 public interface ShapeIndexBufferInterface {
 }

@@ -24,24 +24,17 @@ public class GlVulkanVirtualBuffer implements GlBaseVirtualBuffer {
 
     //
     public static class VirtualBufferObj extends GlBaseVirtualBuffer.VirtualBufferObj {
+        public GlVulkanSharedBuffer.VkSharedBuffer mapped = null;
+
         //
         public VirtualBufferObj() {
             super();
 
             // TODO: support for typed (entity, indexed, blocks, etc.)
             var mapped = GlVulkanSharedBuffer.sharedBufferMap.get(0);
-            this.glStorageBuffer = mapped.glStorageBuffer;
-            this.mapped = mapped;
-
-            //
-            this.glVirtualBuffer = virtualBufferMap.arrayMap.push(this);
-            System.out.println("Generated New Virtual Buffer! Id: " + this.glVirtualBuffer);
-        }
-
-        //
-        @Override
-        public ByteBuffer map(int target, int access, long vkWholeSize, long i) {
-            return (this.allocatedMemory = this.mapped.obj.map(vkWholeSize, i + offset.get(0)));
+            if (mapped != null) {
+                this.glStorageBuffer = (this.mapped = mapped).glStorageBuffer;
+            }
         }
 
         @Override
@@ -56,12 +49,13 @@ public class GlVulkanVirtualBuffer implements GlBaseVirtualBuffer {
         }
 
         @Override
-        public VirtualBufferObj deallocate() throws Exception {
+        public GlBaseVirtualBuffer.VirtualBufferObj deallocate() throws Exception {
             this.assert_();
             vmaVirtualFree(this.mapped.vb.get(0), this.allocId.get(0));
             System.out.println("Deallocated Virtual Buffer! Id: " + this.glVirtualBuffer);
             this.size = 0L;
             this.offset.put(0, 0L);
+            this.glStorageBuffer = -1;
             return this;
         }
 
@@ -75,46 +69,10 @@ public class GlVulkanVirtualBuffer implements GlBaseVirtualBuffer {
 
         //
         @Override
-        public VirtualBufferObj assert_() throws Exception {
-            if (this == null || this.glVirtualBuffer <= 0 || !virtualBufferMap.contains(this)) {
-                System.out.println("Wrong Virtual Buffer Id! " + (this != null ? this.glVirtualBuffer : -1));
-                throw new Exception("Wrong Virtual Buffer Id! " + (this != null ? this.glVirtualBuffer : -1));
-            }
-            return this;
-        }
-
-        //
-        @Override
-        public VirtualBufferObj bindVertex() {
-            if (this.target == GL_ARRAY_BUFFER && this.stride > 0 && this.size > 0 && this.vao > 0) {
-                GL45.glVertexArrayVertexBuffer(this.vao, this.bindingIndex, this.glStorageBuffer, this.offset.get(0), this.stride);
-                // TODO: fix calling spam by VAO objects
-            }
-            return this;
-        }
-
-        @Override
-        public VirtualBufferObj bind(int target) {
-            GL20.glBindBuffer(target, 0);
-            boundBuffers.remove(target);
-
-            // TODO: unbound memory
-            if (target == GL_ARRAY_BUFFER) {
-                this.vao = this.vao > 0 ? this.vao : glGetInteger(GL_VERTEX_ARRAY_BINDING);
-            }
-
-            // TODO: unbound memory
-            boundBuffers.put(this.target = target, this);
-            GL20.glBindBuffer(target, this.glStorageBuffer);
-            return bindVertex();
-        }
-
-        //
-        @Override
-        public VirtualBufferObj allocate(long defaultSize, int usage) throws Exception {
+        public GlBaseVirtualBuffer.VirtualBufferObj allocate(long defaultSize, int usage) throws Exception {
             // TODO: support for typed (entity, indexed, blocks, etc.)
             var mapped = GlVulkanSharedBuffer.sharedBufferMap.get(0);
-            if (this.assert_().size < defaultSize)
+            if (this.assert_().size != defaultSize)
             {
                 System.out.println("WARNING! Size of virtual buffer was changed! " + this.size + " != " + defaultSize);
                 System.out.println("Virtual GL buffer ID: " + this.glVirtualBuffer);
@@ -136,7 +94,7 @@ public class GlVulkanVirtualBuffer implements GlBaseVirtualBuffer {
         }
 
         @Override
-        public VirtualBufferObj data(int target, ByteBuffer data, int usage) {
+        public GlBaseVirtualBuffer.VirtualBufferObj data(int target, ByteBuffer data, int usage) {
             glNamedBufferSubData(this.glStorageBuffer, this.offset.get(0), data);
             return this;
         }

@@ -2,7 +2,7 @@ package org.hydra2s.manhack.mixin.render;
 
 //
 import net.minecraft.client.render.BufferBuilder;
-import org.hydra2s.manhack.mixin.interfaces.BufferBuilderInterface;
+import org.hydra2s.manhack.ducks.render.BufferBuilderInterface;
 import org.spongepowered.asm.mixin.Mixin;
 
 // BIG TODO LIST!
