@@ -1,4 +1,4 @@
-package org.hydra2s.manhack.opengl;
+package org.hydra2s.manhack.shared.opengl;
 
 //
 import org.hydra2s.manhack.GlContext;
@@ -13,9 +13,6 @@ import java.util.Map;
 
 //
 import static org.lwjgl.opengl.GL15.GL_DYNAMIC_DRAW;
-import static org.lwjgl.opengl.GL30.GL_MAP_READ_BIT;
-import static org.lwjgl.opengl.GL30.GL_MAP_WRITE_BIT;
-import static org.lwjgl.opengl.GL44.*;
 import static org.lwjgl.system.MemoryUtil.memAllocPointer;
 import static org.lwjgl.util.vma.Vma.*;
 import static org.lwjgl.util.vma.Vma.vmaCreateVirtualBlock;

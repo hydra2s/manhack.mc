@@ -1,8 +1,6 @@
 package org.hydra2s.manhack.virtual.buffer;
 
 //
-import org.hydra2s.manhack.interfaces.GlBaseVirtualBuffer;
-import org.lwjgl.opengl.GL20;
 import org.lwjgl.opengl.GL45;
 
 //
@@ -10,9 +8,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 
 //
-import static org.lwjgl.opengl.GL11.glGetInteger;
 import static org.lwjgl.opengl.GL15.*;
-import static org.lwjgl.opengl.GL30.GL_VERTEX_ARRAY_BINDING;
 
 // OpenGL direct version
 public class GlDirectVirtualBuffer implements GlBaseVirtualBuffer {
@@ -42,7 +38,7 @@ public class GlDirectVirtualBuffer implements GlBaseVirtualBuffer {
         @Override
         public GlBaseVirtualBuffer.VirtualBufferObj data(int target, ByteBuffer data, int usage) throws Exception {
             this.assert_();
-            this.size = data.remaining();
+            this.realSize = data.remaining();
             GL45.glNamedBufferData(this.glStorageBuffer, data, usage);
             return this;
         }
@@ -50,7 +46,7 @@ public class GlDirectVirtualBuffer implements GlBaseVirtualBuffer {
         @Override
         public GlBaseVirtualBuffer.VirtualBufferObj data(int target, long size, int usage) throws Exception {
             this.assert_();
-            GL45.glNamedBufferData(this.glStorageBuffer, this.size = size, usage);
+            GL45.glNamedBufferData(this.glStorageBuffer, this.realSize = size, usage);
             return this;
         }
 
@@ -58,11 +54,11 @@ public class GlDirectVirtualBuffer implements GlBaseVirtualBuffer {
         public void delete() throws Exception {
             this.assert_();
             virtualBufferMap.removeMem(this.deallocate());
-            //boundBuffers.remove(this.target);
-            System.out.println("Deleted Virtual Buffer! Id: " + this.glVirtualBuffer);
             glDeleteBuffers(this.glStorageBuffer);
             this.glVirtualBuffer = -1;
             this.glStorageBuffer = -1;
+            this.realSize = 0;
+            this.blockSize = 0;
         }
     }
 

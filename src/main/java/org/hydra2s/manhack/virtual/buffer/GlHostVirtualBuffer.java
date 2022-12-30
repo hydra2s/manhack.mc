@@ -1,8 +1,7 @@
 package org.hydra2s.manhack.virtual.buffer;
 
 //
-import org.hydra2s.manhack.interfaces.GlBaseVirtualBuffer;
-import org.hydra2s.manhack.opengl.GlDirectSharedBuffer;
+import org.hydra2s.manhack.shared.opengl.GlDirectSharedBuffer;
 
 //
 import java.nio.ByteBuffer;
@@ -45,8 +44,8 @@ public class GlHostVirtualBuffer implements GlBaseVirtualBuffer {
             this.assert_();
             if (TO_BE_GL) {
                 var offset = this.offset.get(0);
-                if (this.glStorageBuffer > 0 && this.size > 0 && this.offset.get(0) >= 0) {
-                    return memSlice((this.allocatedMemory = glMapNamedBuffer(this.glStorageBuffer, access)), (int) this.offset.get(0), (int) this.size);
+                if (this.glStorageBuffer > 0 && this.realSize > 0 && this.offset.get(0) >= 0) {
+                    return memSlice((this.allocatedMemory = glMapNamedBuffer(this.glStorageBuffer, access)), (int) this.offset.get(0), (int) this.realSize);
                 }
                 //return (this.allocatedMemory = glMapNamedBufferRange(this.glStorageBuffer, offset, this.size, access));
             }
@@ -67,12 +66,12 @@ public class GlHostVirtualBuffer implements GlBaseVirtualBuffer {
         public GlBaseVirtualBuffer.VirtualBufferObj allocate(long defaultSize, int usage) throws Exception {
             long MEM_BLOCK = 98304L;
             defaultSize = roundUp(defaultSize, MEM_BLOCK) * MEM_BLOCK;
-            if (/*this.assert_().allocatedMemory == null ||*/ this.size != defaultSize) {
-                this.deallocate();
-                //this.allocatedMemory = memAlloc((int) (this.size = defaultSize));
+            if (/*this.assert_().allocatedMemory == null ||*/ this.blockSize != defaultSize) {
+                this.deallocate(); // TODO: recopy to new chunk
+                //this.allocatedMemory = memAlloc((int) (this.realSize = defaultSize));
 
                 // TODO: temp-alloc
-                int res = vmaVirtualAllocate(this.mapped.vb.get(0), this.allocCreateInfo.size(this.size = defaultSize), this.allocId.put(0, 0L), this.offset.put(0, 0L));
+                int res = vmaVirtualAllocate(this.mapped.vb.get(0), this.allocCreateInfo.size(this.blockSize = defaultSize), this.allocId.put(0, 0L), this.offset.put(0, 0L));
                 if (res != VK_SUCCESS) {
                     System.out.println("Allocation Failed: " + res);
                     throw new Exception("Allocation Failed: " + res);
@@ -91,11 +90,11 @@ public class GlHostVirtualBuffer implements GlBaseVirtualBuffer {
             //
             if (this.allocId.get(0) != 0) {
                 if (this.glStorageBuffer > 0) {
-                    glClearNamedBufferSubData(this.glStorageBuffer, GL_R8UI, this.offset.get(0), this.size, GL_RED_INTEGER, GL_UNSIGNED_BYTE, memAlloc(1).put(0, (byte) 0));
+                    glClearNamedBufferSubData(this.glStorageBuffer, GL_R8UI, this.offset.get(0), this.blockSize, GL_RED_INTEGER, GL_UNSIGNED_BYTE, memAlloc(1).put(0, (byte) 0));
                 }
 
                 //
-                this.size = 0L;
+                this.blockSize = 0L;
                 this.offset.put(0, 0L);
 
                 //
@@ -113,6 +112,7 @@ public class GlHostVirtualBuffer implements GlBaseVirtualBuffer {
         // prefer a zero copy system
         @Override
         public GlBaseVirtualBuffer.VirtualBufferObj data(int target, ByteBuffer data, int usage) throws Exception {
+            this.realSize = data.remaining();
             if (TO_BE_GL) {
                 if (this.glStorageBuffer > 0) {
                     glNamedBufferSubData(this.glStorageBuffer, this.offset.get(0), data);

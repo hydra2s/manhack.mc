@@ -1,8 +1,8 @@
-package org.hydra2s.manhack.vulkan;
+package org.hydra2s.manhack.shared.vulkan;
 
 //
 import org.hydra2s.manhack.GlContext;
-import org.hydra2s.manhack.interfaces.GlBaseSharedBuffer;
+import org.hydra2s.manhack.shared.interfaces.GlBaseSharedBuffer;
 import org.hydra2s.noire.descriptors.MemoryAllocationCInfo;
 import org.hydra2s.noire.objects.MemoryAllocationObj;
 import org.lwjgl.PointerBuffer;

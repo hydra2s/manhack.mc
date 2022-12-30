@@ -1,9 +1,9 @@
-package org.hydra2s.manhack.vulkan;
+package org.hydra2s.manhack.shared.vulkan;
 
 import com.mojang.blaze3d.platform.GlStateManager;
 import net.minecraft.client.texture.NativeImage;
 import org.hydra2s.manhack.GlContext;
-import org.hydra2s.manhack.interfaces.GlBaseSharedTexture;
+import org.hydra2s.manhack.shared.interfaces.GlBaseSharedTexture;
 import org.hydra2s.noire.descriptors.MemoryAllocationCInfo;
 import org.hydra2s.noire.objects.MemoryAllocationObj;
 import org.lwjgl.vulkan.VkExtent3D;

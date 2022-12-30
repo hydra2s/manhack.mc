@@ -1,9 +1,7 @@
-package org.hydra2s.manhack.interfaces;
+package org.hydra2s.manhack.virtual.buffer;
 
 //
 import org.hydra2s.manhack.UnifiedMap;
-import org.hydra2s.manhack.virtual.buffer.GlHostVirtualBuffer;
-import org.hydra2s.manhack.vulkan.GlVulkanSharedBuffer;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.opengl.GL45;
 import org.lwjgl.util.vma.VmaVirtualAllocationCreateInfo;
@@ -35,7 +33,8 @@ public interface GlBaseVirtualBuffer {
 
     //
     static public class VirtualBufferObj {
-        public long size = 0;
+        public long blockSize = 0;
+        public long realSize = 0;
         public LongBuffer offset = memAllocLong(1).put(0, 0L);
 
         //
@@ -62,17 +61,18 @@ public interface GlBaseVirtualBuffer {
         }
 
         public VirtualBufferObj deallocate() throws Exception {
-            this.size = 0L;
+            this.blockSize = 0L;
             return this;
         }
 
         public void delete() throws Exception {
             this.assert_();
             virtualBufferMap.removeMem(this.deallocate());
-            //System.out.println("Deleted Virtual Buffer! Id: " + this.glVirtualBuffer);
+            System.out.println("Deleted Virtual Buffer! Id: " + this.glVirtualBuffer);
             this.glVirtualBuffer = -1;
             this.glStorageBuffer = -1;
-            this.size = 0L;
+            this.realSize = 0;
+            this.blockSize = 0;
         }
 
         public VirtualBufferObj assert_() throws Exception {
@@ -123,7 +123,7 @@ public interface GlBaseVirtualBuffer {
 
         public VirtualBufferObj allocate(long defaultSize, int usage) throws Exception {
             long MEM_BLOCK = 98304L;
-            this.size = roundUp(defaultSize, MEM_BLOCK) * MEM_BLOCK;
+            this.blockSize = roundUp(defaultSize, MEM_BLOCK) * MEM_BLOCK;
             return this;
         }
 
@@ -139,12 +139,12 @@ public interface GlBaseVirtualBuffer {
         }
 
         public VirtualBufferObj data(int target, ByteBuffer data, int usage) throws Exception {
-            //this.size = data.remaining();
+            this.realSize = data.remaining();
             return this.bindVertex();
         }
 
         public VirtualBufferObj data(int target, long size, int usage) throws Exception {
-            //this.size = size;
+            this.realSize = size;
             return this.bindVertex();
         }
     };

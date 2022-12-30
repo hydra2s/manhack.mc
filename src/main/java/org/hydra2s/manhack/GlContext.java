@@ -3,9 +3,8 @@ package org.hydra2s.manhack;
 //
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.gl.ShaderProgram;
-import org.hydra2s.manhack.opengl.GlDirectSharedBuffer;
-import org.hydra2s.manhack.vulkan.GlVulkanSharedBuffer;
-import org.hydra2s.manhack.vulkan.GlVulkanSharedTexture;
+import org.hydra2s.manhack.shared.vulkan.GlVulkanSharedBuffer;
+import org.hydra2s.manhack.shared.vulkan.GlVulkanSharedTexture;
 import org.hydra2s.noire.descriptors.RendererCInfo;
 
 //
