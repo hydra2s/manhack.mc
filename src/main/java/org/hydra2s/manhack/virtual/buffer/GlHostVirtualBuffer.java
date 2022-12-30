@@ -59,6 +59,8 @@ public class GlHostVirtualBuffer implements GlBaseVirtualBuffer {
         public GlBaseVirtualBuffer.VirtualBufferObj allocate(long defaultSize, int usage) throws Exception {
             if (this.allocatedMemory == null || defaultSize != this.size) {
                 this.deallocate();
+
+                //
                 this.allocatedMemory = memAlloc((int) (this.size = defaultSize));
 
                 // TODO: temp-alloc
@@ -79,6 +81,8 @@ public class GlHostVirtualBuffer implements GlBaseVirtualBuffer {
             if (this.allocatedMemory != null) {
                 memFree(this.allocatedMemory);
             }
+
+            //
             this.allocatedMemory = null;
             this.size = 0L;
             this.offset.put(0, 0L);
@@ -91,12 +95,6 @@ public class GlHostVirtualBuffer implements GlBaseVirtualBuffer {
             return this;
         }
 
-        @Override
-        public GlBaseVirtualBuffer.VirtualBufferObj data(int target, long size, int usage) throws Exception {
-            this.assert_();
-            return this;
-        }
-
         // prefer a zero copy system
         @Override
         public GlBaseVirtualBuffer.VirtualBufferObj data(int target, ByteBuffer data, int usage) throws Exception {
@@ -106,7 +104,7 @@ public class GlHostVirtualBuffer implements GlBaseVirtualBuffer {
                 //this.allocatedMemory = data;
                 memCopy(data, this.assert_().allocatedMemory);
             }
-            return this;
+            return this.bindVertex();
         }
 
         @Override
@@ -116,7 +114,7 @@ public class GlHostVirtualBuffer implements GlBaseVirtualBuffer {
             if (!TO_BE_GL && this.allocatedMemory != null) {
                 glNamedBufferSubData(this.glStorageBuffer, this.offset.get(0), this.allocatedMemory);
             }
-            return this.bindVertex();
+            return this;//this.bindVertex();
         }
 
         @Override

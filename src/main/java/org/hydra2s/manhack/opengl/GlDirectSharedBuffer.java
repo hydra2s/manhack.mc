@@ -26,8 +26,7 @@ public class GlDirectSharedBuffer {
     //
     public static void initialize() throws IOException {
         sharedBufferMap = new HashMap<Integer, GlSharedBuffer>(){{
-            put(0, createBuffer(1024L * 1024L * 256L)); // for vertices
-            put(1, createBuffer(1024L * 1024L * 256L)); // for indices
+            put(0, createBuffer(1024L * 1024L * 1024L));
         }};
         //initialize();
     };

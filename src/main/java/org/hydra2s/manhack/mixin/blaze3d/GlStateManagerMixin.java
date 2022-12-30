@@ -9,6 +9,7 @@ import org.hydra2s.manhack.interfaces.GlBaseVirtualBuffer;
 import org.hydra2s.manhack.opengl.GlDirectSharedBuffer;
 import org.hydra2s.manhack.virtual.buffer.GlDirectVirtualBuffer;
 import org.hydra2s.manhack.virtual.buffer.GlHostVirtualBuffer;
+import org.hydra2s.manhack.virtual.buffer.GlVulkanVirtualBuffer;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL45;
@@ -112,7 +113,7 @@ public class GlStateManagerMixin {
     public static int _glGenBuffers() throws Exception {
         RenderSystem.assertOnRenderThreadOrInit();
         if (GlContext.worldRendering) {
-            return GlHostVirtualBuffer.createVirtualBuffer();
+            return GlVulkanVirtualBuffer.createVirtualBuffer();
         }
         return GlDirectVirtualBuffer.createVirtualBuffer();
     }

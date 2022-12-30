@@ -132,12 +132,12 @@ public interface GlBaseVirtualBuffer {
 
         public VirtualBufferObj data(int target, ByteBuffer data, int usage) throws Exception {
             this.size = data.remaining();
-            return this;
+            return this.bindVertex();
         }
 
         public VirtualBufferObj data(int target, long size, int usage) throws Exception {
             this.size = size;
-            return this;
+            return this.bindVertex();
         }
     };
 

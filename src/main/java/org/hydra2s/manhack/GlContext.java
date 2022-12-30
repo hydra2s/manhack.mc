@@ -25,8 +25,8 @@ public class GlContext {
         rendererObj = new GlRendererObj(null, new RendererCInfo(){
 
         });
-        //GlVulkanSharedBuffer.initialize();
-        GlDirectSharedBuffer.initialize();
+        GlVulkanSharedBuffer.initialize();
+        //GlDirectSharedBuffer.initialize();
     };
 
     //

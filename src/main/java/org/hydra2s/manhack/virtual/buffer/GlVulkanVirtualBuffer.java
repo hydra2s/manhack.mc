@@ -31,9 +31,9 @@ public class GlVulkanVirtualBuffer implements GlBaseVirtualBuffer {
             super();
 
             // TODO: support for typed (entity, indexed, blocks, etc.)
-            var mapped = GlVulkanSharedBuffer.sharedBufferMap.get(0);
-            if (mapped != null) {
-                this.glStorageBuffer = (this.mapped = mapped).glStorageBuffer;
+            this.mapped = GlVulkanSharedBuffer.sharedBufferMap.get(0);
+            if (this.mapped != null) {
+                this.glStorageBuffer = this.mapped.glStorageBuffer;
             }
         }
 
@@ -62,7 +62,6 @@ public class GlVulkanVirtualBuffer implements GlBaseVirtualBuffer {
         @Override
         public void delete() throws Exception {
             virtualBufferMap.removeMem(this.deallocate());
-            boundBuffers.remove(this.target);
             System.out.println("Deleted Virtual Buffer! Id: " + this.glVirtualBuffer);
             this.glVirtualBuffer = -1;
         }
@@ -70,8 +69,6 @@ public class GlVulkanVirtualBuffer implements GlBaseVirtualBuffer {
         //
         @Override
         public GlBaseVirtualBuffer.VirtualBufferObj allocate(long defaultSize, int usage) throws Exception {
-            // TODO: support for typed (entity, indexed, blocks, etc.)
-            var mapped = GlVulkanSharedBuffer.sharedBufferMap.get(0);
             if (this.assert_().size != defaultSize)
             {
                 System.out.println("WARNING! Size of virtual buffer was changed! " + this.size + " != " + defaultSize);
@@ -81,7 +78,7 @@ public class GlVulkanVirtualBuffer implements GlBaseVirtualBuffer {
                 deallocate();
 
                 //
-                int res = vmaVirtualAllocate(mapped.vb.get(0), this.allocCreateInfo.size(this.size = defaultSize), this.allocId.put(0, 0L), this.offset.put(0, 0L));
+                int res = vmaVirtualAllocate(this.mapped.vb.get(0), this.allocCreateInfo.size(this.size = defaultSize), this.allocId.put(0, 0L), this.offset.put(0, 0L));
                 if (res != VK_SUCCESS) {
                     System.out.println("Allocation Failed: " + res);
                     throw new Exception("Allocation Failed: " + res);
@@ -94,9 +91,12 @@ public class GlVulkanVirtualBuffer implements GlBaseVirtualBuffer {
         }
 
         @Override
-        public GlBaseVirtualBuffer.VirtualBufferObj data(int target, ByteBuffer data, int usage) {
-            glNamedBufferSubData(this.glStorageBuffer, this.offset.get(0), data);
-            return this;
+        public GlBaseVirtualBuffer.VirtualBufferObj data(int target, ByteBuffer data, int usage) throws Exception {
+            if (this.glStorageBuffer > 0) {
+                glNamedBufferSubData(this.glStorageBuffer, this.offset.get(0), data);
+            }
+            this.size = data.remaining();
+            return this.bindVertex();
         }
     }
 
