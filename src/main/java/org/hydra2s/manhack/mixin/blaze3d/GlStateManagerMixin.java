@@ -5,6 +5,7 @@ import com.mojang.blaze3d.platform.GlConst;
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import org.hydra2s.manhack.GlContext;
+import org.hydra2s.manhack.shared.vulkan.GlVulkanSharedTexture;
 import org.hydra2s.manhack.virtual.buffer.GlBaseVirtualBuffer;
 import org.hydra2s.manhack.virtual.buffer.GlDirectVirtualBuffer;
 import org.hydra2s.manhack.virtual.buffer.GlVulkanVirtualBuffer;
@@ -14,6 +15,8 @@ import org.lwjgl.opengl.GL45;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Redirect;
 
 //
 import java.nio.ByteBuffer;
@@ -198,27 +201,25 @@ public class GlStateManagerMixin {
     // TODO: Fix Texture System! //
 
     //
-    /*
     @Redirect(remap = false, method="_deleteTexture", at=@At(value = "INVOKE", target = "Lorg/lwjgl/opengl/GL11;glDeleteTextures(I)V"))
-    private static void onDeleteTexture(int glTex) {
+    private static void _deleteTexture(int glTex) {
         GL11.glDeleteTextures(glTex);
 
-        //
-        GlSharedTextureSystem.VkSharedImage image = GlSharedTextureSystem.imageMap.get(glTex);
-        if (image != null) { GlSharedTextureSystem.imageMap.remove(glTex); }
+        // TODO: destructor and de-allocator for Vulkan API
+        GlVulkanSharedTexture.VkSharedImage image = GlVulkanSharedTexture.sharedImageMap.get(glTex);
+        if (image != null) { GlVulkanSharedTexture.sharedImageMap.remove(glTex); }
     }
 
     //
     @Redirect(remap = false, method="_deleteTextures", at=@At(value = "INVOKE", target = "Lorg/lwjgl/opengl/GL11;glDeleteTextures([I)V"))
-    private static void onDeleteTextures(int glTex[]) {
+    private static void _deleteTextures(int glTex[]) {
         GL11.glDeleteTextures(glTex);
 
-        //
+        // TODO: destructor and de-allocator for Vulkan API
         for (var I=0;I<glTex.length;I++) {
-            GlSharedTextureSystem.VkSharedImage image = GlSharedTextureSystem.imageMap.get(glTex[I]);
-            if (image != null) { GlSharedTextureSystem.imageMap.remove(glTex[I]); }
+            GlVulkanSharedTexture.VkSharedImage image = GlVulkanSharedTexture.sharedImageMap.get(glTex[I]);
+            if (image != null) { GlVulkanSharedTexture.sharedImageMap.remove(glTex[I]); }
         }
     }
-    */
 
 }

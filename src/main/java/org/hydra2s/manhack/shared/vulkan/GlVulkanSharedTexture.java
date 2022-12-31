@@ -9,6 +9,7 @@ import org.hydra2s.noire.objects.MemoryAllocationObj;
 import org.lwjgl.vulkan.VkExtent3D;
 
 import java.nio.IntBuffer;
+import java.util.HashMap;
 import java.util.Map;
 
 import static org.lwjgl.opengl.EXTMemoryObject.glCreateMemoryObjectsEXT;
@@ -33,7 +34,7 @@ public class GlVulkanSharedTexture implements GlBaseSharedTexture {
     };
 
     //
-    public static Map<Integer, VkSharedImage> sharedImageMap = null;
+    public static Map<Integer, VkSharedImage> sharedImageMap = new HashMap<Integer, VkSharedImage>();
 
     //
     public static void prepareImage(NativeImage.InternalFormat internalFormat, int id, int maxLevel, int width, int height) {
@@ -44,6 +45,8 @@ public class GlVulkanSharedTexture implements GlBaseSharedTexture {
             }
         } else {
             VkSharedImage sharedImage = sharedImageMap.get(id);
+
+
             if (sharedImage == null) {
                 sharedImage = new VkSharedImage();
                 sharedImage.extent = VkExtent3D.calloc();
@@ -85,6 +88,9 @@ public class GlVulkanSharedTexture implements GlBaseSharedTexture {
                     glImportMemoryWin32HandleEXT(sharedImage.glMemory = glCreateMemoryObjectsEXT(), sharedImage.obj.memoryRequirements2.memoryRequirements().size(), GL_HANDLE_TYPE_OPAQUE_WIN32_EXT, sharedImage.obj.getWin32Handle().get(0));
                 }
                 glTexStorageMem2DEXT(GL_TEXTURE_2D, maxLevel + 1, glFormat, width, height, sharedImage.glMemory, sharedImage.obj.memoryOffset);
+
+                //
+                System.out.println("Shared Vulkan Texture Image Was Created!");
 
                 //
                 sharedImageMap.put(id, sharedImage);
