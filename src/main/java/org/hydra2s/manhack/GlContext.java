@@ -3,6 +3,8 @@ package org.hydra2s.manhack;
 //
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.gl.ShaderProgram;
+import net.minecraft.client.gl.VertexBuffer;
+import net.minecraft.client.render.VertexFormat;
 import org.hydra2s.manhack.shared.vulkan.GlVulkanSharedBuffer;
 import org.hydra2s.manhack.shared.vulkan.GlVulkanSharedTexture;
 import org.hydra2s.noire.descriptors.RendererCInfo;
@@ -16,6 +18,10 @@ import java.util.List;
 public class GlContext {
     public static boolean worldRendering = false;
     public static GlRendererObj rendererObj;
+
+    //
+    public static VertexBuffer boundVertexBuffer;
+    public static VertexFormat boundVertexFormat;
 
     //
     public static void initialize() throws IOException {

@@ -12,6 +12,7 @@ import org.hydra2s.manhack.virtual.buffer.GlVulkanVirtualBuffer;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL45;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
@@ -177,7 +178,7 @@ public class GlStateManagerMixin {
     }
 
     //
-    @Shadow(remap = false) private static boolean ON_LINUX;
+    @Final @Shadow(remap = false) private static boolean ON_LINUX;
 
     /**
      * @author
@@ -212,13 +213,15 @@ public class GlStateManagerMixin {
 
     //
     @Redirect(remap = false, method="_deleteTextures", at=@At(value = "INVOKE", target = "Lorg/lwjgl/opengl/GL11;glDeleteTextures([I)V"))
-    private static void _deleteTextures(int glTex[]) {
+    private static void _deleteTextures(int[] glTex) {
         GL11.glDeleteTextures(glTex);
 
         // TODO: destructor and de-allocator for Vulkan API
-        for (var I=0;I<glTex.length;I++) {
-            GlVulkanSharedTexture.VkSharedImage image = GlVulkanSharedTexture.sharedImageMap.get(glTex[I]);
-            if (image != null) { GlVulkanSharedTexture.sharedImageMap.remove(glTex[I]); }
+        for (int tex : glTex) {
+            GlVulkanSharedTexture.VkSharedImage image = GlVulkanSharedTexture.sharedImageMap.get(tex);
+            if (image != null) {
+                GlVulkanSharedTexture.sharedImageMap.remove(tex);
+            }
         }
     }
 

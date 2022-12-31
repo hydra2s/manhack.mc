@@ -21,12 +21,12 @@ public class WorldRendererMixin {
     @Inject(method="render", at=@At("HEAD"))
     public void onRenderBegin(MatrixStack matrices, float tickDelta, long limitTime, boolean renderBlockOutline, Camera camera, GameRenderer gameRenderer, LightmapTextureManager lightmapTextureManager, Matrix4f positionMatrix, CallbackInfo ci) {
         GlContext.worldRendering = true;
-    };
+    }
 
     //
     @Inject(method="render", at=@At("RETURN"))
     public void onRenderEnd(MatrixStack matrices, float tickDelta, long limitTime, boolean renderBlockOutline, Camera camera, GameRenderer gameRenderer, LightmapTextureManager lightmapTextureManager, Matrix4f positionMatrix, CallbackInfo ci) {
         GlContext.worldRendering = false;
-    };
+    }
 
 }

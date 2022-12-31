@@ -14,7 +14,7 @@
     "render.GameRendererMixin",
     "render.WorldRendererMixin",
     "render.BuiltBufferMixin",
-    "render.VertexBufferMixin",
+    "vertex.VertexBufferMixin",
     "vertex.VertexFormatMixin",
     "vertex.VertexFormatElementMixin",
     "vertex.VertexFormatElementTypeMixin"
