@@ -72,9 +72,9 @@ public class GlVulkanVirtualBuffer implements GlBaseVirtualBuffer {
         //
         @Override
         public GlBaseVirtualBuffer.VirtualBufferObj allocate(long defaultSize, int usage) throws Exception {
-            long MEM_BLOCK = 98304L;
+            long MEM_BLOCK = 1024L * 3L;
             defaultSize = roundUp(defaultSize, MEM_BLOCK) * MEM_BLOCK;
-            if (this.assert_().blockSize != defaultSize)
+            if (this.assert_().blockSize < defaultSize)
             {
                 //System.out.println("WARNING! Size of virtual buffer was changed! " + this.blockSize + " != " + defaultSize);
                 //System.out.println("Virtual GL buffer ID: " + this.glVirtualBuffer);
@@ -95,11 +95,22 @@ public class GlVulkanVirtualBuffer implements GlBaseVirtualBuffer {
             return this;
         }
 
-        @Override
+        // Will used for copying into special buffer
+        @Override // TODO: replace to Vulkan in future...
         public GlBaseVirtualBuffer.VirtualBufferObj data(int target, ByteBuffer data, int usage) throws Exception {
             this.realSize = data.remaining();
             if (this.glStorageBuffer > 0) {
                 glNamedBufferSubData(this.glStorageBuffer, this.offset.get(0), data);
+            }
+            return this.bindVertex();
+        }
+
+        // Will used for copying into special buffer
+        @Override // TODO: replace to Vulkan in future...
+        public GlBaseVirtualBuffer.VirtualBufferObj data(int target, long size, int usage) throws Exception {
+            this.realSize = size;
+            if (this.glStorageBuffer > 0) {
+                glClearNamedBufferSubData(this.glStorageBuffer, GL_R8UI, this.offset.get(0), this.realSize = size, GL_RED_INTEGER, GL_UNSIGNED_BYTE, memAlloc(1).put(0, (byte) 0));
             }
             return this.bindVertex();
         }

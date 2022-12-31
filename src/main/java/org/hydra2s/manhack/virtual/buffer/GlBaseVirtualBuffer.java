@@ -122,7 +122,7 @@ public interface GlBaseVirtualBuffer {
         }
 
         public VirtualBufferObj allocate(long defaultSize, int usage) throws Exception {
-            long MEM_BLOCK = 98304L;
+            long MEM_BLOCK = 1024L * 3L;
             this.blockSize = roundUp(defaultSize, MEM_BLOCK) * MEM_BLOCK;
             return this;
         }

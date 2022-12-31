@@ -23,7 +23,7 @@ public class GlDirectSharedBuffer {
     // TODO: no, this is peace of sheat...
     public static void initialize() throws IOException {
         sharedBufferMap = new HashMap<Integer, GlSharedBuffer>(){{
-            put(0, createBuffer(1024L * 1024L * 1024L));
+            put(0, createBuffer(1024L * 1024L * 1024L * 3L));
         }};
         //initialize();
     };

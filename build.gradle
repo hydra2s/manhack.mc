@@ -11,6 +11,11 @@ archivesBaseName = project.archives_base_name
 version = project.mod_version
 group = project.maven_group
 
+wrapper {
+    gradleVersion = '8.1-20221230234309+0000'
+    distributionUrl = distributionUrl.replace("bin", "all")
+}
+
 repositories {
     // Add repositories to retrieve artifacts from in here.
     // You should only use this when depending on other mods because
@@ -94,7 +99,7 @@ processResources {
 }
 
 tasks.withType(JavaCompile).configureEach {
-    // Minecraft 1.18 (1.18-pre2) upwards uses Java 19.
+    // Minecraft 1.18 (1.18-pre2) upwards uses Java 17.
     it.options.release = 19
 }
 

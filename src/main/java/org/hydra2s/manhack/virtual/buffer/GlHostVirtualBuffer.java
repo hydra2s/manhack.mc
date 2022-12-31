@@ -64,9 +64,9 @@ public class GlHostVirtualBuffer implements GlBaseVirtualBuffer {
 
         @Override
         public GlBaseVirtualBuffer.VirtualBufferObj allocate(long defaultSize, int usage) throws Exception {
-            long MEM_BLOCK = 98304L;
+            long MEM_BLOCK = 1024L * 3L;
             defaultSize = roundUp(defaultSize, MEM_BLOCK) * MEM_BLOCK;
-            if (/*this.assert_().allocatedMemory == null ||*/ this.blockSize != defaultSize) {
+            if (/*this.assert_().allocatedMemory == null ||*/ this.assert_().blockSize < defaultSize) {
                 this.deallocate(); // TODO: recopy to new chunk
                 //this.allocatedMemory = memAlloc((int) (this.realSize = defaultSize));
 
@@ -120,6 +120,17 @@ public class GlHostVirtualBuffer implements GlBaseVirtualBuffer {
             } else {
                 //this.allocatedMemory = data;
                 memCopy(data, this.assert_().allocatedMemory);
+            }
+            return this.bindVertex();
+        }
+
+        @Override
+        public GlBaseVirtualBuffer.VirtualBufferObj data(int target, long size, int usage) throws Exception {
+            this.realSize = size;
+            if (TO_BE_GL) {
+                if (this.glStorageBuffer > 0) {
+                    glClearNamedBufferSubData(this.glStorageBuffer, GL_R8UI, this.offset.get(0), this.realSize = size, GL_RED_INTEGER, GL_UNSIGNED_BYTE, memAlloc(1).put(0, (byte) 0));
+                }
             }
             return this.bindVertex();
         }
