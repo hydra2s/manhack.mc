@@ -10,6 +10,7 @@
   "contact": {
     "sources": "https://github.com/hydra2s/manhack.mc"
   },
+  "accessWidener" : "modid.accessWidener",
   "license": "CC0-1.0",
   "icon": "assets/modid/icon.png",
   "environment": "*",

@@ -1,0 +1,13 @@
+accessWidener   v1  named
+
+accessible field net/minecraft/client/render/VertexFormatElement$Type setupTask Lnet/minecraft/client/render/VertexFormatElement$Type$SetupTask;
+accessible field net/minecraft/client/render/VertexFormatElement$Type clearTask Lnet/minecraft/client/render/VertexFormatElement$Type$ClearTask;
+
+accessible method net/minecraft/client/render/VertexFormatElement$Type$SetupTask setupBufferState (IIIJII)V
+accessible method net/minecraft/client/render/VertexFormatElement$Type$ClearTask clearBufferState (II)V
+
+accessible class net/minecraft/client/render/VertexFormatElement$Type$SetupTask
+accessible class net/minecraft/client/render/VertexFormatElement$Type$ClearTask
+
+accessible method net/minecraft/client/render/VertexFormatElement$Type setupState (IIIJII)V
+accessible method net/minecraft/client/render/VertexFormatElement$Type clearState (II)V

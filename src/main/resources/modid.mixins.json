@@ -15,7 +15,9 @@
     "render.WorldRendererMixin",
     "render.BuiltBufferMixin",
     "render.VertexBufferMixin",
-    "render.VertexFormatMixin"
+    "vertex.VertexFormatMixin",
+    "vertex.VertexFormatElementMixin",
+    "vertex.VertexFormatElementTypeMixin"
   ],
   "injectors": {
     "defaultRequire": 1
