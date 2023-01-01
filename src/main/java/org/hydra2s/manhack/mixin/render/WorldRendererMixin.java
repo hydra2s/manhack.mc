@@ -13,6 +13,12 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import java.nio.IntBuffer;
+
+import static org.lwjgl.opengl.EXTSemaphore.*;
+import static org.lwjgl.opengl.EXTSemaphoreWin32.GL_HANDLE_TYPE_OPAQUE_WIN32_EXT;
+import static org.lwjgl.opengl.EXTSemaphoreWin32.glImportSemaphoreWin32HandleEXT;
+
 //
 @Mixin(WorldRenderer.class)
 public class WorldRendererMixin {
@@ -27,6 +33,13 @@ public class WorldRendererMixin {
     @Inject(method="render", at=@At("RETURN"))
     public void onRenderEnd(MatrixStack matrices, float tickDelta, long limitTime, boolean renderBlockOutline, Camera camera, GameRenderer gameRenderer, LightmapTextureManager lightmapTextureManager, Matrix4f positionMatrix, CallbackInfo ci) {
         GlContext.worldRendering = false;
+
+        // Test rendering!
+        // TODO: OpenGL isn't "know" about your/our virtual swap-chain
+        // TODO: pardon, but needs OpenGL shader for draw such image, or fully replace to Vulkan API
+        // Plan was partially failed...
+        //GlContext.rendererObj.tickRendering();
+
     }
 
 }

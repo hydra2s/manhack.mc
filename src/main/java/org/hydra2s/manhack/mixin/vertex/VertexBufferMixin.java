@@ -37,7 +37,7 @@ public class VertexBufferMixin implements VertexBufferInterface {
 
     //
     @Inject(method="unbind", at=@At(value = "RETURN"))
-    static void onUnbind(CallbackInfo ci) {
+    private static void onUnbind(CallbackInfo ci) {
         GlContext.boundVertexBuffer = null;
         GlContext.boundVertexFormat = null;
     }
@@ -47,7 +47,7 @@ public class VertexBufferMixin implements VertexBufferInterface {
     @Unique @Override public int getVertexBufferId() { return this.vertexBufferId; }
     @Unique @Override public int getIndexBufferId() { return this.indexBufferId; }
     @Unique @Override public int getIndexCount() { return this.indexCount; }
-    @Unique @Override public VertexFormat.IndexType getIndexType() { return this.indexType; }
+    //@Unique @Override public VertexFormat.IndexType getIndexType() { return this.indexType; }
     @Unique @Override public RenderSystem.ShapeIndexBuffer getSharedSequentialIndexBuffer() {return this.sharedSequentialIndexBuffer; }
     @Unique @Override public VertexFormat.DrawMode getDrawMode() { return this.drawMode; }
 }

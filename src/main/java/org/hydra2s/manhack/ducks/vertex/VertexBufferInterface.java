@@ -12,7 +12,7 @@ public interface VertexBufferInterface {
 
     int getIndexCount();
 
-    VertexFormat.IndexType getIndexType();
+    //VertexFormat.IndexType getIndexType();
 
     RenderSystem.ShapeIndexBuffer getSharedSequentialIndexBuffer();
 
