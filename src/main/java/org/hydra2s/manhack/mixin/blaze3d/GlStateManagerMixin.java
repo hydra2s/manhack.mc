@@ -48,7 +48,7 @@ public class GlStateManagerMixin {
 
         //
         var vBinding = 0;//index;
-        var VBO = GlBaseVirtualBuffer.boundBuffers.get(GL_ARRAY_BUFFER);
+        var VBO = GlContext.boundBuffers.get(GL_ARRAY_BUFFER);
         VBO.vao = glVao;
         VBO.stride = stride;
 
@@ -71,7 +71,7 @@ public class GlStateManagerMixin {
 
         //
         var vBinding = 0;//index;
-        var VBO = GlBaseVirtualBuffer.boundBuffers.get(GL_ARRAY_BUFFER);
+        var VBO = GlContext.boundBuffers.get(GL_ARRAY_BUFFER);
         VBO.vao = glVao;
         VBO.stride = stride;
 
@@ -91,10 +91,10 @@ public class GlStateManagerMixin {
 
         // Here is shared vulkan problems...
         // Vulkan API isn't know about memory mapping.
-        var iVBO = GlBaseVirtualBuffer.boundBuffers.get(GL_ELEMENT_ARRAY_BUFFER);
+        var iVBO = GlContext.boundBuffers.get(GL_ELEMENT_ARRAY_BUFFER);
 
         // TODO: support multiple vertex bound buffers
-        var vVBO = GlBaseVirtualBuffer.boundBuffers.get(GL_ARRAY_BUFFER);
+        var vVBO = GlContext.boundBuffers.get(GL_ARRAY_BUFFER);
 
         //
         vVBO.preDraw(); iVBO.preDraw();
@@ -128,7 +128,7 @@ public class GlStateManagerMixin {
     @Overwrite
     public static void _glBindBuffer(int target, int glVirtualBuffer) throws Exception {
         RenderSystem.assertOnRenderThreadOrInit();
-        GlBaseVirtualBuffer.virtualBufferMap.get(glVirtualBuffer).bind(target);
+        GlContext.virtualBufferMap.get(glVirtualBuffer).bind(target);
     }
 
     /**
@@ -138,7 +138,7 @@ public class GlStateManagerMixin {
     @Overwrite
     public static void _glBufferData(int target, ByteBuffer data, int usage) throws Exception {
         RenderSystem.assertOnRenderThreadOrInit();
-        GlBaseVirtualBuffer.boundBuffers.get(target).allocate(data.remaining(), usage).data(target, data, usage);
+        GlContext.boundBuffers.get(target).allocate(data.remaining(), usage).data(target, data, usage);
     }
 
     /**
@@ -148,7 +148,7 @@ public class GlStateManagerMixin {
     @Overwrite
     public static void _glBufferData(int target, long size, int usage) throws Exception {
         RenderSystem.assertOnRenderThreadOrInit();
-        GlBaseVirtualBuffer.boundBuffers.get(target).allocate(size, usage).data(target, size, usage);
+        GlContext.boundBuffers.get(target).allocate(size, usage).data(target, size, usage);
     }
 
     /**
@@ -159,7 +159,7 @@ public class GlStateManagerMixin {
     @Overwrite
     public static ByteBuffer mapBuffer(int target, int access) throws Exception {
         RenderSystem.assertOnRenderThreadOrInit();
-        return GlBaseVirtualBuffer.boundBuffers.get(target).map(target, access);
+        return GlContext.boundBuffers.get(target).map(target, access);
     }
 
     /**
@@ -171,7 +171,7 @@ public class GlStateManagerMixin {
     @Overwrite
     public static void _glUnmapBuffer(int target) throws Exception {
         RenderSystem.assertOnRenderThreadOrInit();
-        GlBaseVirtualBuffer.boundBuffers.get(target).unmap(target);
+        GlContext.boundBuffers.get(target).unmap(target);
     }
 
     //
@@ -189,7 +189,7 @@ public class GlStateManagerMixin {
             _glBufferData(GlConst.GL_ARRAY_BUFFER, 0L, GlConst.GL_DYNAMIC_DRAW);
             _glBindBuffer(GlConst.GL_ARRAY_BUFFER, 0);
         }
-        GlBaseVirtualBuffer.virtualBufferMap.get(glVirtualBuffer).delete();
+        GlContext.virtualBufferMap.get(glVirtualBuffer).delete();
     }
 
 

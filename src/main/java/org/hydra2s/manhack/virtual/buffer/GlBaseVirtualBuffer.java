@@ -1,6 +1,7 @@
 package org.hydra2s.manhack.virtual.buffer;
 
 //
+import org.hydra2s.manhack.GlContext;
 import org.hydra2s.manhack.UnifiedMap;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.opengl.GL45;
@@ -19,18 +20,11 @@ import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL30.GL_VERTEX_ARRAY_BINDING;
 import static org.lwjgl.system.MemoryUtil.memAllocLong;
 import static org.lwjgl.system.MemoryUtil.memAllocPointer;
+import static org.lwjgl.vulkan.VK10.VK_FORMAT_UNDEFINED;
+import static org.lwjgl.vulkan.VK10.VK_INDEX_TYPE_UINT32;
 
 //
 public interface GlBaseVirtualBuffer {
-    //
-    public static Map<Integer, VirtualBufferObj> boundBuffers = new HashMap<Integer, VirtualBufferObj>() {{
-
-    }};
-
-    //
-    public static UnifiedMap<VirtualBufferObj> virtualBufferMap = new UnifiedMap<VirtualBufferObj>();
-    public static VirtualBufferObj dummyCache = new VirtualBufferObj();
-
     //
     static public class VirtualBufferObj {
         public long blockSize = 0;
@@ -50,6 +44,9 @@ public interface GlBaseVirtualBuffer {
         public int vao = 0;
         public ByteBuffer allocatedMemory = null;
 
+        //
+        public long address = 0L;
+        public int indexType = VK_INDEX_TYPE_UINT32;
 
         //
         public ByteBuffer map(int target, int access) throws Exception {
@@ -67,7 +64,7 @@ public interface GlBaseVirtualBuffer {
 
         public void delete() throws Exception {
             this.assert_();
-            virtualBufferMap.removeMem(this.deallocate());
+            GlContext.virtualBufferMap.removeMem(this.deallocate());
             System.out.println("Deleted Virtual Buffer! Id: " + this.glVirtualBuffer);
             this.glVirtualBuffer = -1;
             this.glStorageBuffer = -1;
@@ -76,7 +73,7 @@ public interface GlBaseVirtualBuffer {
         }
 
         public VirtualBufferObj assert_() throws Exception {
-            if (this == null || this.glVirtualBuffer <= 0 || !virtualBufferMap.contains(this)) {
+            if (this == null || this.glVirtualBuffer <= 0 || !GlContext.virtualBufferMap.contains(this)) {
                 System.out.println("Wrong Virtual Buffer Id! " + (this != null ? this.glVirtualBuffer : -1));
                 throw new Exception("Wrong Virtual Buffer Id! " + (this != null ? this.glVirtualBuffer : -1));
             }
@@ -104,7 +101,7 @@ public interface GlBaseVirtualBuffer {
 
         public GlBaseVirtualBuffer.VirtualBufferObj bind(int target) throws Exception {
             this.assert_();
-            boundBuffers.remove(target);
+            GlContext.boundBuffers.remove(target);
 
             // TODO: unbound memory
             if (target == GL_ARRAY_BUFFER) {
@@ -112,7 +109,7 @@ public interface GlBaseVirtualBuffer {
             }
 
             // TODO: unbound memory
-            boundBuffers.put(this.target = target, this);
+            GlContext.boundBuffers.put(this.target = target, this);
             return this.bindVertex();
         }
 
@@ -132,7 +129,7 @@ public interface GlBaseVirtualBuffer {
             this.offset = memAllocLong(1).put(0, 0L);
             this.allocId = memAllocPointer(1).put(0, 0L);
             this.allocCreateInfo = VmaVirtualAllocationCreateInfo.calloc().alignment(16L);
-            this.glVirtualBuffer = virtualBufferMap.arrayMap.push(this);
+            this.glVirtualBuffer = GlContext.virtualBufferMap.arrayMap.push(this);
             this.glStorageBuffer = -1;
             this.allocatedMemory = null;
             System.out.println("Generated New Virtual Buffer! Id: " + this.glVirtualBuffer);

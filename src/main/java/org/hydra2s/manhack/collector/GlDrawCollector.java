@@ -11,11 +11,20 @@ import org.hydra2s.manhack.GlContext;
 import org.hydra2s.manhack.ducks.render.ShaderProgramInterface;
 import org.hydra2s.manhack.ducks.vertex.VertexBufferInterface;
 import org.hydra2s.manhack.ducks.vertex.VertexFormatInterface;
+import org.hydra2s.manhack.shared.vulkan.GlVulkanSharedBuffer;
+import org.hydra2s.manhack.virtual.buffer.GlVulkanVirtualBuffer;
+import org.lwjgl.opengl.GL45;
 
 //
 import java.util.ArrayList;
 
 //
+import static org.lwjgl.opengl.GL11.GL_VERTEX_ARRAY;
+import static org.lwjgl.opengl.GL15.GL_DYNAMIC_DRAW;
+import static org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER;
+import static org.lwjgl.system.MemoryUtil.memAllocPointer;
+import static org.lwjgl.util.vma.Vma.vmaClearVirtualBlock;
+import static org.lwjgl.util.vma.Vma.vmaCreateVirtualBlock;
 import static org.lwjgl.vulkan.VK10.VK_FORMAT_UNDEFINED;
 
 //
@@ -35,26 +44,11 @@ public class GlDrawCollector {
     }
 
     //
-    public static class VirtualTempBuffer {
-        long offset = 0L;
-        long size = 0L;
-        long address = 0L;
-        long stride = 0L;
-
-        // where to bind it
-        int binding = 0;
-        int sharedId = 1; // which will used
-
-        // for index buffer
-        int format = VK_FORMAT_UNDEFINED;
-    }
-
-    //
     public static class GeometryDataObj {
         // buffers
-        public VirtualTempBuffer indexBuffer;
-        public VirtualTempBuffer vertexBuffer;
-        public VirtualTempBuffer uniformDataBuffer;
+        public GlVulkanVirtualBuffer.VirtualBufferObj indexBuffer;
+        public GlVulkanVirtualBuffer.VirtualBufferObj vertexBuffer;
+        public GlVulkanVirtualBuffer.VirtualBufferObj uniformDataBuffer;
 
         // bindings
         public VirtualTempBinding vertexBinding;
@@ -70,14 +64,30 @@ public class GlDrawCollector {
 
     // deallocate and reset all draws data
     public static void resetDraw() {
+        var sharedBuffer = GlVulkanSharedBuffer.sharedBufferMap.get(1);
+        
+        //
         collectedDraws.forEach((drawCall)->{
-
+            try {
+                drawCall.vertexBuffer.delete();
+                drawCall.indexBuffer.delete();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
         });
         collectedDraws.clear();
+
+        //
+        if (sharedBuffer.vb.get(0) != 0) {
+            vmaClearVirtualBlock(sharedBuffer.vb.get(0));
+        }
+
+        //
+        //vmaCreateVirtualBlock(sharedBuffer.vbInfo.size(sharedBuffer.bufferCreateInfo.size), sharedBuffer.vb = memAllocPointer(1));
     }
 
     //
-    public static void collectDraw(int mode, int count, int type, long indices) {
+    public static void collectDraw(int mode, int count, int type, long indices) throws Exception {
         //
         var boundVertexBuffer = GlContext.boundVertexBuffer;
         var boundVertexFormat = GlContext.boundVertexFormat;
@@ -87,6 +97,25 @@ public class GlDrawCollector {
         var boundVertexBufferI = (VertexBufferInterface)boundVertexBuffer;
         var boundVertexFormatI = (VertexFormatInterface)boundVertexFormat;
         var boundShaderProgramI = (ShaderProgramInterface)boundShaderProgram; // only for download a uniform data
+
+        // TODO: direct and zero-copy host memory support
+        var virtualVertexBuffer = GlContext.virtualBufferMap.get(boundVertexBufferI.getVertexBufferId());
+        var virtualIndexBuffer = GlContext.virtualBufferMap.get(boundVertexBufferI.getIndexBufferId());
+
+        //
+        var geometryData = new GeometryDataObj();
+        geometryData.indexBuffer = new GlVulkanVirtualBuffer.VirtualBufferObj(1);
+        geometryData.vertexBuffer = new GlVulkanVirtualBuffer.VirtualBufferObj(1);
+        geometryData.uniformDataBuffer = new GlVulkanVirtualBuffer.VirtualBufferObj(1);
+
+        // TODO: allocation limiter support
+        geometryData.uniformDataBuffer.data(GL_SHADER_STORAGE_BUFFER, 256, GL_DYNAMIC_DRAW);
+        geometryData.vertexBuffer.data(GL_VERTEX_ARRAY, virtualVertexBuffer.realSize, GL_DYNAMIC_DRAW);
+        geometryData.indexBuffer.data(GL_VERTEX_ARRAY, virtualIndexBuffer.realSize, GL_DYNAMIC_DRAW);
+
+        // TODO: copy using Vulkan API!
+        GL45.glCopyNamedBufferSubData(virtualVertexBuffer.glStorageBuffer, geometryData.vertexBuffer.glStorageBuffer, virtualVertexBuffer.offset.get(0), geometryData.vertexBuffer.offset.get(0), virtualVertexBuffer.realSize);
+        GL45.glCopyNamedBufferSubData(virtualIndexBuffer.glStorageBuffer, geometryData.indexBuffer.glStorageBuffer, virtualIndexBuffer.offset.get(0), geometryData.indexBuffer.offset.get(0), virtualIndexBuffer.realSize);
 
         //
 

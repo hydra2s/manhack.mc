@@ -1,6 +1,7 @@
 package org.hydra2s.manhack.virtual.buffer;
 
 //
+import org.hydra2s.manhack.GlContext;
 import org.lwjgl.opengl.GL45;
 
 //
@@ -53,7 +54,7 @@ public class GlDirectVirtualBuffer implements GlBaseVirtualBuffer {
         @Override
         public void delete() throws Exception {
             this.assert_();
-            virtualBufferMap.removeMem(this.deallocate());
+            GlContext.virtualBufferMap.removeMem(this.deallocate());
             glDeleteBuffers(this.glStorageBuffer);
             this.glVirtualBuffer = -1;
             this.glStorageBuffer = -1;

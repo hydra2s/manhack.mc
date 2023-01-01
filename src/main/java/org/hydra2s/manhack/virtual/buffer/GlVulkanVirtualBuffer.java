@@ -20,8 +20,6 @@ import static org.lwjgl.vulkan.VK10.*;
 
 //
 public class GlVulkanVirtualBuffer implements GlBaseVirtualBuffer {
-    public static VirtualBufferObj dummyCache = new VirtualBufferObj();
-
     //
     public static class VirtualBufferObj extends GlBaseVirtualBuffer.VirtualBufferObj {
         public GlVulkanSharedBuffer.VkSharedBuffer mapped = null;
@@ -32,6 +30,15 @@ public class GlVulkanVirtualBuffer implements GlBaseVirtualBuffer {
 
             // TODO: support for typed (entity, indexed, blocks, etc.)
             if ((this.mapped = GlVulkanSharedBuffer.sharedBufferMap.get(0)) != null) {
+                this.glStorageBuffer = this.mapped.glStorageBuffer;
+            }
+        }
+
+        public VirtualBufferObj(int typed) {
+            super();
+
+            // TODO: support for typed (entity, indexed, blocks, etc.)
+            if ((this.mapped = GlVulkanSharedBuffer.sharedBufferMap.get(typed)) != null) {
                 this.glStorageBuffer = this.mapped.glStorageBuffer;
             }
         }
