@@ -16,6 +16,7 @@ import org.hydra2s.manhack.virtual.buffer.GlVulkanVirtualBuffer;
 import org.lwjgl.opengl.GL45;
 
 //
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
 //
@@ -37,31 +38,46 @@ public class GlDrawCollector {
     //
     public static class VirtualTempBinding {
         // re-wrote info
-        long offset = 0L;
-        long size = 0L;
+        long relativeOffset = 0L;
+        long byteSize = 0L;
         long address = 0L;
         long stride = 0L;
 
         //
         int binding = 0;
         int format = VK_FORMAT_UNDEFINED;
+
+        static final int bindingStride = 8 + 8 + 4 + 4 + 4 + 4; // 32-byte binding
+
+        //
+        public void writeBinding(ByteBuffer by, long bfOffset, long bfIndex) {
+            // address, offset, format, stride, size
+
+            var bOffset = (int) (bfOffset + 0 + bfIndex * bindingStride);
+            by.putLong( bOffset + 0, address);
+            by.putLong(bOffset + 8, byteSize - relativeOffset);
+            by.putInt(bOffset + 16, (int) relativeOffset);
+            by.putInt(bOffset + 20, (int) stride);
+            by.putInt(bOffset + 24, format);
+        }
     }
 
     //
-    public static class GeometryDataObj {
+    public static class DrawCallObj {
         // buffers
         public GlVulkanVirtualBuffer.VirtualBufferObj indexBuffer;
         public GlVulkanVirtualBuffer.VirtualBufferObj vertexBuffer;
 
-        // TODO: needs it?!
+        // TODO: needs it?! Sharing only...
         public GlVulkanVirtualBuffer.VirtualBufferObj uniformDataBuffer;
 
         // bindings
         public VirtualTempBinding vertexBinding;
+        public VirtualTempBinding normalBinding;
         public VirtualTempBinding colorBinding;
         public VirtualTempBinding uvBinding;
 
-        //
+        // only this is really useful
         public long uniformOffset = 0L;
         public int primitiveCount = 0;
 
@@ -70,7 +86,7 @@ public class GlDrawCollector {
     }
 
     // will reset and deallocated every draw...
-    public static ArrayList<GeometryDataObj> collectedDraws = new ArrayList<GeometryDataObj>();
+    public static ArrayList<DrawCallObj> collectedDraws = new ArrayList<DrawCallObj>();
     public static int drawCount = 0;
 
     // deallocate and reset all draws data
@@ -98,10 +114,13 @@ public class GlDrawCollector {
         //vmaCreateVirtualBlock(sharedBuffer.vbInfo.size(sharedBuffer.bufferCreateInfo.size), sharedBuffer.vb = memAllocPointer(1));
     }
 
-    //
+    // TODO: add forgotten support for UINT8 index data
     public static void collectDraw(int mode, int count, int type, long indices) throws Exception {
         // isn't valid!
-        if (type != GL_TRIANGLES) { return; };
+        if (mode != GL_TRIANGLES) { return; };
+
+        // TODO: uint8 index type support is broken! I forgot to add such extension.
+        if (type == GL_UNSIGNED_BYTE || type == GL_BYTE) { return; };
 
         //
         var boundVertexBuffer = GlContext.boundVertexBuffer;
@@ -118,41 +137,48 @@ public class GlDrawCollector {
         var virtualIndexBuffer = GlContext.virtualBufferMap.get(boundVertexBufferI.getIndexBufferId());
 
         //
-        var geometryData = new GeometryDataObj();
-        geometryData.indexBuffer = new GlVulkanVirtualBuffer.VirtualBufferObj(1);
-        geometryData.vertexBuffer = new GlVulkanVirtualBuffer.VirtualBufferObj(1);
-        geometryData.uniformDataBuffer = GlVulkanSharedBuffer.uniformDataBuffer;//new GlVulkanVirtualBuffer.VirtualBufferObj(1);
-        geometryData.uniformOffset = GlVulkanSharedBuffer.uniformStride * drawCount;
-        geometryData.primitiveCount = count/3;
-
-        //
-        //GlVulkanSharedBuffer.uniformDataBufferHost.data();
+        var drawCallData = new DrawCallObj();
+        drawCallData.indexBuffer = new GlVulkanVirtualBuffer.VirtualBufferObj(1);
+        drawCallData.vertexBuffer = new GlVulkanVirtualBuffer.VirtualBufferObj(1);
+        drawCallData.uniformDataBuffer = GlVulkanSharedBuffer.uniformDataBuffer;//new GlVulkanVirtualBuffer.VirtualBufferObj(1);
+        drawCallData.uniformOffset = GlVulkanSharedBuffer.uniformStride * drawCount;
+        drawCallData.primitiveCount = count/3;
 
         // TODO: allocation limiter support
-        //geometryData.uniformDataBuffer.data(GL_SHADER_STORAGE_BUFFER, GlVulkanSharedBuffer.uniformStride, GL_DYNAMIC_DRAW);
-        geometryData.vertexBuffer.data(GL_VERTEX_ARRAY, virtualVertexBuffer.realSize, GL_DYNAMIC_DRAW);
-        geometryData.indexBuffer.data(GL_VERTEX_ARRAY, virtualIndexBuffer.realSize, GL_DYNAMIC_DRAW);
+        drawCallData.vertexBuffer.data(GL_ARRAY_BUFFER, virtualVertexBuffer.realSize, GL_DYNAMIC_DRAW);
+        drawCallData.indexBuffer.data(GL_ELEMENT_ARRAY_BUFFER, virtualIndexBuffer.realSize, GL_DYNAMIC_DRAW);
 
         // TODO: fill uniform data
         var uniformData = GlVulkanSharedBuffer.uniformDataBufferHost.map(GL_UNIFORM_BUFFER, GL_MAP_WRITE_BIT);
+        for (var I=0;I<16;I++) {}; // set transform
+        var transformOffset = 16*4;
 
+        //
+        drawCallData.vertexBinding.writeBinding(uniformData, transformOffset, 0);
+        drawCallData.normalBinding.writeBinding(uniformData, transformOffset, 1);
+        drawCallData.uvBinding.writeBinding(uniformData, transformOffset, 2);
+        drawCallData.colorBinding.writeBinding(uniformData, transformOffset, 3);
+
+        // TODO: fill metadata and combined samplers
+        var metaOffset = transformOffset + VirtualTempBinding.bindingStride*4;
+        
         // TODO: copy using Vulkan API!
         GL45.glMemoryBarrier(GL_ELEMENT_ARRAY_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT | GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
         GL45.glCopyNamedBufferSubData(
-                virtualVertexBuffer.glStorageBuffer, geometryData.vertexBuffer.glStorageBuffer,
-                virtualVertexBuffer.offset.get(0), geometryData.vertexBuffer.offset.get(0),
+                virtualVertexBuffer.glStorageBuffer, drawCallData.vertexBuffer.glStorageBuffer,
+                virtualVertexBuffer.offset.get(0),   drawCallData.vertexBuffer.offset.get(0),
                 virtualVertexBuffer.realSize);
         GL45.glCopyNamedBufferSubData(
-                virtualIndexBuffer.glStorageBuffer, geometryData.indexBuffer.glStorageBuffer,
-                virtualIndexBuffer.offset.get(0), geometryData.indexBuffer.offset.get(0),
+                virtualIndexBuffer.glStorageBuffer, drawCallData.indexBuffer.glStorageBuffer,
+                virtualIndexBuffer.offset.get(0),   drawCallData.indexBuffer.offset.get(0),
                 virtualIndexBuffer.realSize);
         GL45.glCopyNamedBufferSubData(
-                GlVulkanSharedBuffer.uniformDataBufferHost.glStorageBuffer, geometryData.uniformDataBuffer.glStorageBuffer,
-                GlVulkanSharedBuffer.uniformDataBufferHost.offset.get(0), geometryData.uniformDataBuffer.offset.get(0),
+                GlVulkanSharedBuffer.uniformDataBufferHost.glStorageBuffer, drawCallData.uniformDataBuffer.glStorageBuffer,
+                GlVulkanSharedBuffer.uniformDataBufferHost.offset.get(0),   drawCallData.uniformDataBuffer.offset.get(0),
                 GlVulkanSharedBuffer.uniformStride);
 
         //
-        collectedDraws.add(geometryData);
+        collectedDraws.add(drawCallData);
         drawCount++;
     }
 
