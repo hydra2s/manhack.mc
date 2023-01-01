@@ -5,24 +5,8 @@ import net.minecraft.client.render.BufferBuilder;
 import org.hydra2s.manhack.ducks.render.BufferBuilderInterface;
 import org.spongepowered.asm.mixin.Mixin;
 
-// BIG TODO LIST!
-// - Replace `this.buffer` by mapped memory
-// - Construct with bigger memory `public BufferBuilder(int initialCapacity)`
-// - Add special mapped buffer of Vulkan API
-
+// TODO: use own GL/VK buffer instead of uploading
 @Mixin(BufferBuilder.class)
 public class BufferBuilderMixin implements BufferBuilderInterface {
-
-    /**
-     * @author
-     * @reason Unavailable for Vulkan API
-     */
-    //@Overwrite private void grow() {};
-
-    /**
-     * @author
-     * @reason Unavailable for Vulkan API
-     */
-    //@Overwrite private void grow(int size) {};
 
 };

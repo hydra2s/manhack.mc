@@ -7,7 +7,6 @@ import net.minecraft.client.gl.*;
 import net.minecraft.client.render.VertexFormat;
 import org.hydra2s.manhack.GlContext;
 import org.hydra2s.manhack.ducks.render.ShaderProgramInterface;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -38,14 +37,16 @@ public class ShaderProgramMixin implements ShaderProgramInterface {
     // will download to geometry data
     @Final @Shadow private Map<String, Object> samplers = Maps.newHashMap();
     @Final @Shadow private List<String> samplerNames = Lists.newArrayList();
+    @Final @Shadow private List<Integer> loadedSamplerIds = Lists.newArrayList();
 
     //
-    @Final @Shadow private List<Integer> loadedSamplerIds = Lists.newArrayList();
     @Final @Shadow private List<GlUniform> uniforms = Lists.newArrayList();
     @Final @Shadow private List<Integer> loadedUniformIds = Lists.newArrayList();
     @Final @Shadow private Map<String, GlUniform> loadedUniforms = Maps.newHashMap();
     @Final @Shadow private int glRef;
     @Final @Shadow private String name;
+
+    //
     @Shadow private boolean dirty;
 
     //
@@ -84,5 +85,10 @@ public class ShaderProgramMixin implements ShaderProgramInterface {
     void onUnbind(CallbackInfo ci) {
         GlContext.boundShaderProgram = null;
     }
+
+    //
+    @Override public Map<String, Object> getSamplers() { return this.samplers;}
+    @Override public List<String> getSamplerNames() { return this.samplerNames; }
+    @Override public List<Integer> getLoadedSamplerIds() { return this.loadedSamplerIds; }
 
 }
