@@ -22,25 +22,4 @@ public class VertexFormatElementMixin implements VertexFormatElementInterface {
     @Overwrite public void setupState(int elementIndex, long offset, int stride) {
         this.type.setupState(this.componentCount, this.componentType.getGlType(), stride, offset, this.uvIndex, elementIndex);
     }
-
-    //
-    @Unique @Override public int getByteLength() {
-        return this.byteLength;
-    }
-    @Unique @Override public int getComponentCount() {
-        return this.componentCount;
-    }
-    @Unique @Override public int getUvIndex() {
-        return this.uvIndex;
-    }
-
-    //
-    @Unique @Override public VertexFormatElement.ComponentType getComponentType() {
-        return this.componentType;
-    }
-
-    @Unique @Override public VertexFormatElement.Type getType() {
-        return this.type;
-    }
-
 }

@@ -9,13 +9,8 @@ import net.minecraft.client.render.VertexFormatElement;
 //
 public interface VertexFormatInterface {
 
-    ImmutableList<VertexFormatElement> getElements();
-
     ImmutableMap<String, VertexFormatElement> getElementMap();
 
     IntList getOffsets();
 
-    int getVertexSizeByte();
-
-    VertexBuffer getBuffer();
 }

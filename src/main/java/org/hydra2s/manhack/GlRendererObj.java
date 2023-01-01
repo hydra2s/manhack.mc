@@ -42,12 +42,12 @@ public class GlRendererObj extends BasicObj {
     public ArrayList<Promise<Integer>> promises = new ArrayList<Promise<Integer>>();
     public ArrayList<VkCommandBuffer> commandBuffers = new ArrayList<VkCommandBuffer>();
     public Iterator<Integer> process;
-    public PipelineObj.ComputePipelineObj finalComp;
-    public PipelineObj.GraphicsPipelineObj trianglePipeline;
+    //public PipelineObj.ComputePipelineObj finalComp;
+    //public PipelineObj.GraphicsPipelineObj trianglePipeline;
     public ImageSetCInfo.FBLayout fbLayout;
     public ImageSetObj.FramebufferObj framebuffer;
-    public AccelerationStructureObj.TopAccelerationStructureObj topLvl;
-    public AccelerationStructureObj.BottomAccelerationStructureObj bottomLvl;
+    //public AccelerationStructureObj.TopAccelerationStructureObj topLvl;
+    //public AccelerationStructureObj.BottomAccelerationStructureObj bottomLvl;
 
     //
     public int glSignalSemaphore = 0;
@@ -186,6 +186,7 @@ public class GlRendererObj extends BasicObj {
         var _pipelineLayout = this.pipelineLayout;
         var _memoryAllocator = memoryAllocator;
 
+        /*
         //
         var triangleBuffer = new MemoryAllocationObj.BufferObj(this.logicalDevice.getHandle(), new MemoryAllocationCInfo.BufferCInfo(){{
             isHost = true;
@@ -271,7 +272,7 @@ public class GlRendererObj extends BasicObj {
                     VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR);
 
             return VK_SUCCESS;
-        });
+        });*/
 
         //
         return this;
@@ -349,12 +350,14 @@ public class GlRendererObj extends BasicObj {
             var pushConst = memAllocInt(4);
             pushConst.put(0, swapchain.getImageView(I).DSC_ID);
             pushConst.put(1, framebuffer.writingImageViews.get(0).DSC_ID);
-            memLongBuffer(memAddress(pushConst, 2), 1).put(0, this.topLvl.getDeviceAddress());
+            //memLongBuffer(memAddress(pushConst, 2), 1).put(0, this.topLvl.getDeviceAddress());
 
             int finalI = I;
             this.logicalDevice.writeCommand(cmdBuf, (_cmdBuf_)->{
                 //this.trianglePipeline.cmdDraw(cmdBuf, VkMultiDrawInfoEXT.calloc(1).put(0, VkMultiDrawInfoEXT.calloc().vertexCount(3).firstVertex(0)), this.framebuffer.getHandle().get(), memByteBuffer(pushConst), 0);
                 //this.finalComp.cmdDispatch(cmdBuf, VkExtent3D.calloc().width(1280/32).height(720/6).depth(1), memByteBuffer(pushConst), 0);
+
+                // FOR TEST ONLY!
                 vkCmdClearColorImage(cmdBuf, this.swapchain.getImage(finalI), VK_IMAGE_LAYOUT_GENERAL, VkClearColorValue.calloc().float32(memAllocFloat(4).put(0, 1.F).put(1, 0.F).put(2, 0.F).put(3, 0.F)), VkImageSubresourceRange.calloc().aspectMask(VK_IMAGE_ASPECT_COLOR_BIT).layerCount(1).levelCount(1));
                 return VK_SUCCESS;
             });

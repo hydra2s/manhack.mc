@@ -51,7 +51,7 @@ public class GlDrawCollector {
         public int format = VK_FORMAT_UNDEFINED;
 
         //
-        public GlVulkanVirtualBuffer.VirtualBufferObj virtualBuffer;
+        public GlVulkanVirtualBuffer.VirtualBufferObj virtualBuffer = null;
 
         //
         static final int bindingStride = 8 + 8 + 4 + 4 + 4 + 4; // 32-byte binding
@@ -66,7 +66,7 @@ public class GlDrawCollector {
                 by.putLong(bOffset + 8, virtualBuffer.realSize - relativeOffset);
                 by.putInt(bOffset + 16, (int) relativeOffset);
                 by.putInt(bOffset + 20, virtualBuffer.stride);
-                by.putInt(bOffset + 24, format);
+                by.putInt(bOffset + 24, format); // TODO: custom format encoding for shader
             } else {
                 by.putLong(bOffset + 0, 0);
                 by.putLong(bOffset + 8, 0);
@@ -80,17 +80,18 @@ public class GlDrawCollector {
     //
     public static class DrawCallObj {
         // buffers
-        public GlVulkanVirtualBuffer.VirtualBufferObj indexBuffer;
-        public GlVulkanVirtualBuffer.VirtualBufferObj vertexBuffer;
+        public GlVulkanVirtualBuffer.VirtualBufferObj indexBuffer = null;
+        public GlVulkanVirtualBuffer.VirtualBufferObj vertexBuffer = null;
 
         // TODO: needs it?! Sharing only...
-        public GlVulkanVirtualBuffer.VirtualBufferObj uniformDataBuffer;
+        public GlVulkanVirtualBuffer.VirtualBufferObj uniformDataBuffer = null;
 
         // bindings
-        public VirtualTempBinding vertexBinding;
-        public VirtualTempBinding normalBinding;
-        public VirtualTempBinding colorBinding;
-        public VirtualTempBinding uvBinding;
+        // TODO: replace to array based
+        public VirtualTempBinding vertexBinding = null;
+        public VirtualTempBinding normalBinding = null;
+        public VirtualTempBinding colorBinding = null;
+        public VirtualTempBinding uvBinding = null;
 
         // only this is really useful
         public long uniformOffset = 0L;
@@ -129,9 +130,12 @@ public class GlDrawCollector {
         //vmaCreateVirtualBlock(sharedBuffer.vbInfo.size(sharedBuffer.bufferCreateInfo.size), sharedBuffer.vb = memAllocPointer(1));
     }
 
-    //
+    // collect draw calls for batch draw and acceleration structure
     public static void collectDraw(int mode, int count, int type, long indices) throws Exception {
-        // isn't valid!
+        // don't record GUI, or other trash
+        if (!GlContext.worldRendering) { return; };
+
+        // isn't valid! must be drawn in another layer, and directly.
         if (mode != GL_TRIANGLES) { return; };
 
         // TODO: uint8 index type may to be broken or corrupted...
@@ -155,18 +159,20 @@ public class GlDrawCollector {
         var drawCallData = new DrawCallObj();
         drawCallData.indexBuffer = new GlVulkanVirtualBuffer.VirtualBufferObj(1);
         drawCallData.vertexBuffer = new GlVulkanVirtualBuffer.VirtualBufferObj(1);
+
+        //
         drawCallData.uniformDataBuffer = GlVulkanSharedBuffer.uniformDataBuffer;//new GlVulkanVirtualBuffer.VirtualBufferObj(1);
         drawCallData.uniformOffset = GlVulkanSharedBuffer.uniformStride * drawCount;
-        drawCallData.primitiveCount = count/3;
 
         // TODO: allocation limiter support
         drawCallData.vertexBuffer.data(GL_ARRAY_BUFFER, virtualVertexBuffer.realSize, GL_DYNAMIC_DRAW);
         drawCallData.indexBuffer.data(GL_ELEMENT_ARRAY_BUFFER, virtualIndexBuffer.realSize, GL_DYNAMIC_DRAW);
+        drawCallData.primitiveCount = count/3;
 
         //
-        if (type == GL_UNSIGNED_BYTE || type == GL_BYTE) { drawCallData.indexBuffer.indexType = VK_INDEX_TYPE_UINT8_EXT; };
+        if (type == GL_UNSIGNED_BYTE  || type == GL_BYTE ) { drawCallData.indexBuffer.indexType = VK_INDEX_TYPE_UINT8_EXT; };
         if (type == GL_UNSIGNED_SHORT || type == GL_SHORT) { drawCallData.indexBuffer.indexType = VK_INDEX_TYPE_UINT16; };
-        if (type == GL_UNSIGNED_INT || type == GL_INT) { drawCallData.indexBuffer.indexType = VK_INDEX_TYPE_UINT32; };
+        if (type == GL_UNSIGNED_INT   || type == GL_INT  ) { drawCallData.indexBuffer.indexType = VK_INDEX_TYPE_UINT32; };
 
         // TODO: fill uniform data
         var uniformData = GlVulkanSharedBuffer.uniformDataBufferHost.map(GL_UNIFORM_BUFFER, GL_MAP_WRITE_BIT);
@@ -222,6 +228,8 @@ public class GlDrawCollector {
 
         //
         var bindingOffset = 16*4;
+
+        // TODO: replace by array based
         drawCallData.vertexBinding.writeBinding(uniformData, bindingOffset, 0);
         drawCallData.normalBinding.writeBinding(uniformData, bindingOffset, 1);
         drawCallData.uvBinding.writeBinding(uniformData, bindingOffset, 2);

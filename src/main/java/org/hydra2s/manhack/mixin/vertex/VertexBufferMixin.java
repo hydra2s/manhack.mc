@@ -47,7 +47,6 @@ public class VertexBufferMixin implements VertexBufferInterface {
     @Unique @Override public int getVertexBufferId() { return this.vertexBufferId; }
     @Unique @Override public int getIndexBufferId() { return this.indexBufferId; }
     @Unique @Override public int getIndexCount() { return this.indexCount; }
-    //@Unique @Override public VertexFormat.IndexType getIndexType() { return this.indexType; }
     @Unique @Override public RenderSystem.ShapeIndexBuffer getSharedSequentialIndexBuffer() {return this.sharedSequentialIndexBuffer; }
     @Unique @Override public VertexFormat.DrawMode getDrawMode() { return this.drawMode; }
 }

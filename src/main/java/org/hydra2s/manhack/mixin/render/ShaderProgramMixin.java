@@ -23,27 +23,27 @@ import java.util.Map;
 public class ShaderProgramMixin implements ShaderProgramInterface {
 
     //
-    @Final @Shadow public static String SHADERS_DIRECTORY = "shaders";
-    @Final @Shadow private static String CORE_DIRECTORY = "shaders/core/";
-    @Final @Shadow private static String INCLUDE_DIRECTORY = "shaders/include/";
-    @Final @Shadow static final Logger LOGGER = LogUtils.getLogger();
-    @Final @Shadow private static Uniform DEFAULT_UNIFORM = new Uniform();
-    @Final @Shadow private static boolean field_32780 = true;
+    @Final @Shadow public static String SHADERS_DIRECTORY;
+    @Final @Shadow private static String CORE_DIRECTORY;
+    @Final @Shadow private static String INCLUDE_DIRECTORY;
+    @Final @Shadow static Logger LOGGER;
+    @Final @Shadow private static Uniform DEFAULT_UNIFORM;
+    @Final @Shadow private static boolean field_32780;
 
     //
     @Shadow private static ShaderProgram activeProgram;
-    @Shadow private static int activeProgramGlRef = -1;
+    @Shadow private static int activeProgramGlRef;
     
 
     // will download to geometry data
-    @Final @Shadow private Map<String, Object> samplers = Maps.newHashMap();
-    @Final @Shadow private List<String> samplerNames = Lists.newArrayList();
-    @Final @Shadow private List<Integer> loadedSamplerIds = Lists.newArrayList();
+    @Final @Shadow private Map<String, Object> samplers;
+    @Final @Shadow private List<String> samplerNames;
+    @Final @Shadow private List<Integer> loadedSamplerIds;
 
     //
-    @Final @Shadow private List<GlUniform> uniforms = Lists.newArrayList();
-    @Final @Shadow private List<Integer> loadedUniformIds = Lists.newArrayList();
-    @Final @Shadow private Map<String, GlUniform> loadedUniforms = Maps.newHashMap();
+    @Final @Shadow private List<GlUniform> uniforms;
+    @Final @Shadow private List<Integer> loadedUniformIds ;
+    @Final @Shadow private Map<String, GlUniform> loadedUniforms;
     @Final @Shadow private int glRef;
     @Final @Shadow private String name;
 

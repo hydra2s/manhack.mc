@@ -17,7 +17,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-//
+// TODO: unify with GlRendererObj
 public class GlContext {
     public static boolean worldRendering = false;
     public static GlRendererObj rendererObj;

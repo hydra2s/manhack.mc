@@ -13,12 +13,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import java.nio.IntBuffer;
-
-import static org.lwjgl.opengl.EXTSemaphore.*;
-import static org.lwjgl.opengl.EXTSemaphoreWin32.GL_HANDLE_TYPE_OPAQUE_WIN32_EXT;
-import static org.lwjgl.opengl.EXTSemaphoreWin32.glImportSemaphoreWin32HandleEXT;
-
 //
 @Mixin(WorldRenderer.class)
 public class WorldRendererMixin {
@@ -27,6 +21,7 @@ public class WorldRendererMixin {
     @Inject(method="render", at=@At("HEAD"))
     public void onRenderBegin(MatrixStack matrices, float tickDelta, long limitTime, boolean renderBlockOutline, Camera camera, GameRenderer gameRenderer, LightmapTextureManager lightmapTextureManager, Matrix4f positionMatrix, CallbackInfo ci) {
         GlContext.worldRendering = true;
+        //GlDrawCollector.resetDraw();
     }
 
     //

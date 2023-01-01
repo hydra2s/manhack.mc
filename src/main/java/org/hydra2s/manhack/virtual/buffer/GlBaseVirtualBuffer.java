@@ -20,6 +20,7 @@ import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL30.GL_VERTEX_ARRAY_BINDING;
 import static org.lwjgl.system.MemoryUtil.memAllocLong;
 import static org.lwjgl.system.MemoryUtil.memAllocPointer;
+import static org.lwjgl.vulkan.KHRAccelerationStructure.VK_INDEX_TYPE_NONE_KHR;
 import static org.lwjgl.vulkan.VK10.VK_FORMAT_UNDEFINED;
 import static org.lwjgl.vulkan.VK10.VK_INDEX_TYPE_UINT32;
 
@@ -46,7 +47,7 @@ public interface GlBaseVirtualBuffer {
 
         //
         public long address = 0L;
-        public int indexType = VK_INDEX_TYPE_UINT32;
+        public int indexType = VK_INDEX_TYPE_NONE_KHR;
 
         //
         public ByteBuffer map(int target, int access) throws Exception {

@@ -20,7 +20,7 @@ import java.io.IOException;
 public class RenderSystemMixin {
 
     @Inject(method = "initRenderer(IZ)V", at=@At("TAIL"))
-    private static void mInitRenderer(int debugVerbosity, boolean debugSync, CallbackInfo ci) throws IOException {
+    private static void mInitRenderer(int debugVerbosity, boolean debugSync, CallbackInfo ci) throws Exception {
         GlContext.initialize();
     }
 

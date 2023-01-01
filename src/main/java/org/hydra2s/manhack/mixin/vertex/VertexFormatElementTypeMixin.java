@@ -16,7 +16,4 @@ public class VertexFormatElementTypeMixin implements VertexFormatElementTypeInte
     // accessWidener public
     @Final @Shadow public VertexFormatElement.Type.SetupTask setupTask;
     @Final @Shadow public VertexFormatElement.Type.ClearTask clearTask;
-
-    // interface getter for name
-    @Unique @Override public String getName() { return this.name; }
 }
