@@ -32,7 +32,7 @@ import static org.lwjgl.vulkan.VK12.VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 //
 public class GlVulkanSharedBuffer implements GlBaseSharedBuffer {
 
-    public static final long uniformStride = 384L;
+    public static final long uniformStride = 768L;
 
     //
     public static void initialize() throws Exception {

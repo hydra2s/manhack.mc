@@ -7,17 +7,24 @@ package org.hydra2s.manhack.collector;
 // - Support for Vulkan API shaders structures (UBO, etc.)
 
 //
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gl.Framebuffer;
+import net.minecraft.client.texture.AbstractTexture;
 import org.hydra2s.manhack.GlContext;
 import org.hydra2s.manhack.ducks.render.ShaderProgramInterface;
 import org.hydra2s.manhack.ducks.vertex.VertexBufferInterface;
 import org.hydra2s.manhack.ducks.vertex.VertexFormatInterface;
 import org.hydra2s.manhack.shared.vulkan.GlVulkanSharedBuffer;
+import org.hydra2s.manhack.shared.vulkan.GlVulkanSharedTexture;
 import org.hydra2s.manhack.virtual.buffer.GlVulkanVirtualBuffer;
+import org.joml.Matrix4f;
+import org.joml.Vector3f;
 import org.lwjgl.opengl.GL45;
 
 //
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Vector;
 
 //
 import static org.lwjgl.opengl.GL11.GL_VERTEX_ARRAY;
@@ -27,10 +34,12 @@ import static org.lwjgl.opengl.GL31.GL_UNIFORM_BUFFER;
 import static org.lwjgl.opengl.GL42.*;
 import static org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER;
 import static org.lwjgl.opengl.GL44.GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT;
+import static org.lwjgl.system.MemoryUtil.memAllocFloat;
 import static org.lwjgl.system.MemoryUtil.memAllocPointer;
 import static org.lwjgl.util.vma.Vma.vmaClearVirtualBlock;
 import static org.lwjgl.util.vma.Vma.vmaCreateVirtualBlock;
-import static org.lwjgl.vulkan.VK10.VK_FORMAT_UNDEFINED;
+import static org.lwjgl.vulkan.EXTIndexTypeUint8.VK_INDEX_TYPE_UINT8_EXT;
+import static org.lwjgl.vulkan.VK10.*;
 
 //
 public class GlDrawCollector {
@@ -38,15 +47,13 @@ public class GlDrawCollector {
     //
     public static class VirtualTempBinding {
         // re-wrote info
-        long relativeOffset = 0L;
-        long byteSize = 0L;
-        long address = 0L;
-        long stride = 0L;
+        public long relativeOffset = 0L;
+        public int format = VK_FORMAT_UNDEFINED;
 
         //
-        int binding = 0;
-        int format = VK_FORMAT_UNDEFINED;
+        public GlVulkanVirtualBuffer.VirtualBufferObj virtualBuffer;
 
+        //
         static final int bindingStride = 8 + 8 + 4 + 4 + 4 + 4; // 32-byte binding
 
         //
@@ -54,11 +61,19 @@ public class GlDrawCollector {
             // address, offset, format, stride, size
 
             var bOffset = (int) (bfOffset + 0 + bfIndex * bindingStride);
-            by.putLong( bOffset + 0, address);
-            by.putLong(bOffset + 8, byteSize - relativeOffset);
-            by.putInt(bOffset + 16, (int) relativeOffset);
-            by.putInt(bOffset + 20, (int) stride);
-            by.putInt(bOffset + 24, format);
+            if (virtualBuffer != null) {
+                by.putLong(bOffset + 0, virtualBuffer.address + relativeOffset);
+                by.putLong(bOffset + 8, virtualBuffer.realSize - relativeOffset);
+                by.putInt(bOffset + 16, (int) relativeOffset);
+                by.putInt(bOffset + 20, virtualBuffer.stride);
+                by.putInt(bOffset + 24, format);
+            } else {
+                by.putLong(bOffset + 0, 0);
+                by.putLong(bOffset + 8, 0);
+                by.putInt(bOffset + 16, 0);
+                by.putInt(bOffset + 20, 0);
+                by.putInt(bOffset + 24, VK_FORMAT_UNDEFINED);
+            }
         }
     }
 
@@ -114,12 +129,12 @@ public class GlDrawCollector {
         //vmaCreateVirtualBlock(sharedBuffer.vbInfo.size(sharedBuffer.bufferCreateInfo.size), sharedBuffer.vb = memAllocPointer(1));
     }
 
-    // TODO: add forgotten support for UINT8 index data
+    //
     public static void collectDraw(int mode, int count, int type, long indices) throws Exception {
         // isn't valid!
         if (mode != GL_TRIANGLES) { return; };
 
-        // TODO: uint8 index type support is broken! I forgot to add such extension.
+        // TODO: uint8 index type may to be broken or corrupted...
         if (type == GL_UNSIGNED_BYTE || type == GL_BYTE) { return; };
 
         //
@@ -148,20 +163,90 @@ public class GlDrawCollector {
         drawCallData.vertexBuffer.data(GL_ARRAY_BUFFER, virtualVertexBuffer.realSize, GL_DYNAMIC_DRAW);
         drawCallData.indexBuffer.data(GL_ELEMENT_ARRAY_BUFFER, virtualIndexBuffer.realSize, GL_DYNAMIC_DRAW);
 
+        //
+        if (type == GL_UNSIGNED_BYTE || type == GL_BYTE) { drawCallData.indexBuffer.indexType = VK_INDEX_TYPE_UINT8_EXT; };
+        if (type == GL_UNSIGNED_SHORT || type == GL_SHORT) { drawCallData.indexBuffer.indexType = VK_INDEX_TYPE_UINT16; };
+        if (type == GL_UNSIGNED_INT || type == GL_INT) { drawCallData.indexBuffer.indexType = VK_INDEX_TYPE_UINT32; };
+
         // TODO: fill uniform data
         var uniformData = GlVulkanSharedBuffer.uniformDataBufferHost.map(GL_UNIFORM_BUFFER, GL_MAP_WRITE_BIT);
-        for (var I=0;I<16;I++) {}; // set transform
-        var transformOffset = 16*4;
 
         //
-        drawCallData.vertexBinding.writeBinding(uniformData, transformOffset, 0);
-        drawCallData.normalBinding.writeBinding(uniformData, transformOffset, 1);
-        drawCallData.uvBinding.writeBinding(uniformData, transformOffset, 2);
-        drawCallData.colorBinding.writeBinding(uniformData, transformOffset, 3);
+        var vertexFEL = boundVertexFormatI.getElementMap();
+        var offsetMap = boundVertexFormatI.getOffsets();
+        var keyList = vertexFEL.keySet().asList();
+
+        //
+        var posElement = vertexFEL.get("Position");
+        var posOffset = posElement != null ? offsetMap.get(keyList.indexOf("Position")) : null;
+        drawCallData.vertexBinding = new VirtualTempBinding();
+        drawCallData.vertexBinding.virtualBuffer = posElement != null ? drawCallData.vertexBuffer : null;
+        drawCallData.vertexBinding.format = VK_FORMAT_R32G32B32_SFLOAT;
+        drawCallData.vertexBinding.relativeOffset = posOffset;
+
+        //
+        var uvElement = vertexFEL.get("UV0");
+        var uvOffset = uvElement != null ? offsetMap.get(keyList.indexOf("UV0")) : null;
+        drawCallData.uvBinding = new VirtualTempBinding();
+        drawCallData.uvBinding.virtualBuffer = uvElement != null ? drawCallData.vertexBuffer : null;
+        drawCallData.uvBinding.format = VK_FORMAT_R32G32_SFLOAT;
+        drawCallData.uvBinding.relativeOffset = uvOffset;
+
+        //
+        var colorElement = vertexFEL.get("Color");
+        var colorOffset = colorElement != null ? offsetMap.get(keyList.indexOf("Color")) : null;
+        drawCallData.colorBinding = new VirtualTempBinding();
+        drawCallData.colorBinding.virtualBuffer = colorElement != null ? drawCallData.vertexBuffer : null;
+        drawCallData.colorBinding.format = VK_FORMAT_R32_UINT; // rgba8unorm de-facto
+        drawCallData.colorBinding.relativeOffset = colorOffset;
+
+        //
+        var normalElement = vertexFEL.get("Normal");
+        var normalOffset = normalElement != null ? offsetMap.getInt(keyList.indexOf("Normal")) : null;
+        drawCallData.normalBinding = new VirtualTempBinding();
+        drawCallData.normalBinding.virtualBuffer = normalElement != null ? drawCallData.vertexBuffer : null;
+        drawCallData.normalBinding.format = VK_FORMAT_R32_UINT; // rgba8snorm de-facto
+        drawCallData.normalBinding.relativeOffset = normalOffset;
+
+        // will used in top level of acceleration structure
+        var playerCamera = MinecraftClient.getInstance().gameRenderer.getCamera();
+
+        //
+        var chunkOffset = boundShaderProgram.chunkOffset != null ? boundShaderProgram.chunkOffset.getFloatData() : memAllocFloat(3).put(0, 0.F).put(1, 0.F).put(2, 0.F);
+
+        // needs for acceleration structure
+        var transform = new Matrix4f();
+        //transform.translate(new Vector3f((float) (chunkOffset.get(0) - playerCamera.getPos().x), (float) (chunkOffset.get(1) - playerCamera.getPos().y), (float) (chunkOffset.get(2) - playerCamera.getPos().z)));
+        transform.translate(new Vector3f((float) (chunkOffset.get(0)), (float) (chunkOffset.get(1)), (float) (chunkOffset.get(2))));
+        transform.transpose().get(uniformData);
+
+        //
+        var bindingOffset = 16*4;
+        drawCallData.vertexBinding.writeBinding(uniformData, bindingOffset, 0);
+        drawCallData.normalBinding.writeBinding(uniformData, bindingOffset, 1);
+        drawCallData.uvBinding.writeBinding(uniformData, bindingOffset, 2);
+        drawCallData.colorBinding.writeBinding(uniformData, bindingOffset, 3);
 
         // TODO: fill metadata and combined samplers
-        var metaOffset = transformOffset + VirtualTempBinding.bindingStride*4;
-        
+        var metaOffset = bindingOffset + VirtualTempBinding.bindingStride*4;
+
+        //
+        var object = boundShaderProgramI.getSamplers().get("Sampler0");
+        int l = -1;
+        if (object instanceof Framebuffer) {
+            l = ((Framebuffer)object).getColorAttachment();
+        } else if (object instanceof AbstractTexture) {
+            l = ((AbstractTexture)object).getGlId();
+        } else if (object instanceof Integer) {
+            l = (Integer)object;
+        }
+
+        // TODO: get image view pipeline index
+        var vkTexture = GlVulkanSharedTexture.sharedImageMap.get(l);
+        if (vkTexture != null) {
+
+        }
+
         // TODO: copy using Vulkan API!
         GL45.glMemoryBarrier(GL_ELEMENT_ARRAY_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT | GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
         GL45.glCopyNamedBufferSubData(
