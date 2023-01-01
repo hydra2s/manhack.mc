@@ -12,6 +12,7 @@ import org.hydra2s.manhack.ducks.vertex.VertexFormatInterface;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 
 //
 @Mixin(VertexFormat.class)
@@ -25,10 +26,10 @@ public class VertexFormatMixin implements VertexFormatInterface {
     @Shadow private VertexBuffer buffer;
 
     //
-    @Override public ImmutableList<VertexFormatElement> getElements() { return this.elements; }
-    @Override public ImmutableMap<String, VertexFormatElement> getElementMap() { return this.elementMap; }
-    @Override public IntList getOffsets() { return this.offsets; }
-    @Override public int getVertexSizeByte() { return this.vertexSizeByte; }
-    @Override public VertexBuffer getBuffer() { return buffer; }
+    @Unique @Override public ImmutableList<VertexFormatElement> getElements() { return this.elements; }
+    @Unique @Override public ImmutableMap<String, VertexFormatElement> getElementMap() { return this.elementMap; }
+    @Unique @Override public IntList getOffsets() { return this.offsets; }
+    @Unique @Override public int getVertexSizeByte() { return this.vertexSizeByte; }
+    @Unique @Override public VertexBuffer getBuffer() { return buffer; }
 
 }

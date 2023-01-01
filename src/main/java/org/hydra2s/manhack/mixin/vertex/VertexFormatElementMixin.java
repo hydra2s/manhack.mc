@@ -2,10 +2,7 @@ package org.hydra2s.manhack.mixin.vertex;
 
 import net.minecraft.client.render.VertexFormatElement;
 import org.hydra2s.manhack.ducks.vertex.VertexFormatElementInterface;
-import org.spongepowered.asm.mixin.Final;
-import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Overwrite;
-import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.*;
 
 @Mixin(VertexFormatElement.class)
 public class VertexFormatElementMixin implements VertexFormatElementInterface {
@@ -27,24 +24,22 @@ public class VertexFormatElementMixin implements VertexFormatElementInterface {
     }
 
     //
-    @Override public int getByteLength() {
+    @Unique @Override public int getByteLength() {
         return this.byteLength;
     }
-
-    @Override public int getComponentCount() {
+    @Unique @Override public int getComponentCount() {
         return this.componentCount;
     }
-
-    @Override public int getUvIndex() {
+    @Unique @Override public int getUvIndex() {
         return this.uvIndex;
     }
 
     //
-    @Override public VertexFormatElement.ComponentType getComponentType() {
+    @Unique @Override public VertexFormatElement.ComponentType getComponentType() {
         return this.componentType;
     }
 
-    @Override public VertexFormatElement.Type getType() {
+    @Unique @Override public VertexFormatElement.Type getType() {
         return this.type;
     }
 

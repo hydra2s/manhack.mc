@@ -35,18 +35,4 @@ public class GlContext {
         //GlDirectSharedBuffer.initialize();
     };
 
-    //
-    public static void inclusion() {
-        ShaderProgram shader = RenderSystem.getShader();
-
-        //
-        List<GlVulkanSharedTexture.VkSharedImage> resources = new ArrayList<GlVulkanSharedTexture.VkSharedImage>();
-        for(int j = 0; j < 8; ++j) {
-            resources.add(GlVulkanSharedTexture.sharedImageMap.get(RenderSystem.getShaderTexture(j)));
-        };
-
-        //
-        //GlSharedTextureSystem.VkSharedImage Sampler0 = resources.get(0);
-    };
-
 };

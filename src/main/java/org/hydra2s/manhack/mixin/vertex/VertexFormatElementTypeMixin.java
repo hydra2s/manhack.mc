@@ -6,6 +6,7 @@ import org.hydra2s.manhack.ducks.vertex.VertexFormatElementTypeInterface;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 
 //
 @Mixin(VertexFormatElement.Type.class)
@@ -17,5 +18,5 @@ public class VertexFormatElementTypeMixin implements VertexFormatElementTypeInte
     @Final @Shadow public VertexFormatElement.Type.ClearTask clearTask;
 
     // interface getter for name
-    @Override public String getName() { return this.name; }
+    @Unique @Override public String getName() { return this.name; }
 }

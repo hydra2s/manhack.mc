@@ -8,6 +8,7 @@ import org.hydra2s.manhack.GlContext;
 import org.hydra2s.manhack.ducks.vertex.VertexBufferInterface;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -42,11 +43,11 @@ public class VertexBufferMixin implements VertexBufferInterface {
     }
 
     //
-    @Override public int getVertexArrayId() { return this.vertexArrayId; }
-    @Override public int getVertexBufferId() { return this.vertexBufferId; }
-    @Override public int getIndexBufferId() { return this.indexBufferId; }
-    @Override public int getIndexCount() { return this.indexCount; }
-    @Override public VertexFormat.IndexType getIndexType() { return this.indexType; }
-    @Override public RenderSystem.ShapeIndexBuffer getSharedSequentialIndexBuffer() {return this.sharedSequentialIndexBuffer; }
-    @Override public VertexFormat.DrawMode getDrawMode() { return this.drawMode; }
+    @Unique @Override public int getVertexArrayId() { return this.vertexArrayId; }
+    @Unique @Override public int getVertexBufferId() { return this.vertexBufferId; }
+    @Unique @Override public int getIndexBufferId() { return this.indexBufferId; }
+    @Unique @Override public int getIndexCount() { return this.indexCount; }
+    @Unique @Override public VertexFormat.IndexType getIndexType() { return this.indexType; }
+    @Unique @Override public RenderSystem.ShapeIndexBuffer getSharedSequentialIndexBuffer() {return this.sharedSequentialIndexBuffer; }
+    @Unique @Override public VertexFormat.DrawMode getDrawMode() { return this.drawMode; }
 }
