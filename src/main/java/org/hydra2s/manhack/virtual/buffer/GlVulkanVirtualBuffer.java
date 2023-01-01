@@ -71,6 +71,7 @@ public class GlVulkanVirtualBuffer implements GlBaseVirtualBuffer {
                     vmaVirtualFree(this.mapped.vb.get(0), this.allocId.get(0));
                 }
 
+                this.address = 0L;
                 this.allocId.put(0, 0L);
             }
             return this;
@@ -95,6 +96,9 @@ public class GlVulkanVirtualBuffer implements GlBaseVirtualBuffer {
                     System.out.println("Allocation Failed: " + res);
                     throw new Exception("Allocation Failed: " + res);
                 }
+
+                // get device address from 
+                this.address = this.mapped.obj.getDeviceAddress() + this.offset.get(0);
 
                 //
                 //System.out.println("Virtual buffer Size Changed: " + this.blockSize);

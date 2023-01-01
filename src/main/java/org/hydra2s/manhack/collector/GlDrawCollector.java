@@ -21,7 +21,11 @@ import java.util.ArrayList;
 //
 import static org.lwjgl.opengl.GL11.GL_VERTEX_ARRAY;
 import static org.lwjgl.opengl.GL15.GL_DYNAMIC_DRAW;
+import static org.lwjgl.opengl.GL30.GL_MAP_WRITE_BIT;
+import static org.lwjgl.opengl.GL31.GL_UNIFORM_BUFFER;
+import static org.lwjgl.opengl.GL42.*;
 import static org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER;
+import static org.lwjgl.opengl.GL44.GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT;
 import static org.lwjgl.system.MemoryUtil.memAllocPointer;
 import static org.lwjgl.util.vma.Vma.vmaClearVirtualBlock;
 import static org.lwjgl.util.vma.Vma.vmaCreateVirtualBlock;
@@ -48,6 +52,8 @@ public class GlDrawCollector {
         // buffers
         public GlVulkanVirtualBuffer.VirtualBufferObj indexBuffer;
         public GlVulkanVirtualBuffer.VirtualBufferObj vertexBuffer;
+
+        // TODO: needs it?!
         public GlVulkanVirtualBuffer.VirtualBufferObj uniformDataBuffer;
 
         // bindings
@@ -55,12 +61,17 @@ public class GlDrawCollector {
         public VirtualTempBinding colorBinding;
         public VirtualTempBinding uvBinding;
 
+        //
+        public long uniformOffset = 0L;
+        public int primitiveCount = 0;
+
         // rewrite from uniform data
         //public IntList vkImageViews; // will paired with `uniformDataBuffer`
     }
 
     // will reset and deallocated every draw...
     public static ArrayList<GeometryDataObj> collectedDraws = new ArrayList<GeometryDataObj>();
+    public static int drawCount = 0;
 
     // deallocate and reset all draws data
     public static void resetDraw() {
@@ -76,6 +87,7 @@ public class GlDrawCollector {
             }
         });
         collectedDraws.clear();
+        drawCount = 0;
 
         //
         if (sharedBuffer.vb.get(0) != 0) {
@@ -88,6 +100,9 @@ public class GlDrawCollector {
 
     //
     public static void collectDraw(int mode, int count, int type, long indices) throws Exception {
+        // isn't valid!
+        if (type != GL_TRIANGLES) { return; };
+
         //
         var boundVertexBuffer = GlContext.boundVertexBuffer;
         var boundVertexFormat = GlContext.boundVertexFormat;
@@ -106,19 +121,39 @@ public class GlDrawCollector {
         var geometryData = new GeometryDataObj();
         geometryData.indexBuffer = new GlVulkanVirtualBuffer.VirtualBufferObj(1);
         geometryData.vertexBuffer = new GlVulkanVirtualBuffer.VirtualBufferObj(1);
-        geometryData.uniformDataBuffer = new GlVulkanVirtualBuffer.VirtualBufferObj(1);
+        geometryData.uniformDataBuffer = GlVulkanSharedBuffer.uniformDataBuffer;//new GlVulkanVirtualBuffer.VirtualBufferObj(1);
+        geometryData.uniformOffset = GlVulkanSharedBuffer.uniformStride * drawCount;
+        geometryData.primitiveCount = count/3;
+
+        //
+        //GlVulkanSharedBuffer.uniformDataBufferHost.data();
 
         // TODO: allocation limiter support
-        geometryData.uniformDataBuffer.data(GL_SHADER_STORAGE_BUFFER, 256, GL_DYNAMIC_DRAW);
+        //geometryData.uniformDataBuffer.data(GL_SHADER_STORAGE_BUFFER, GlVulkanSharedBuffer.uniformStride, GL_DYNAMIC_DRAW);
         geometryData.vertexBuffer.data(GL_VERTEX_ARRAY, virtualVertexBuffer.realSize, GL_DYNAMIC_DRAW);
         geometryData.indexBuffer.data(GL_VERTEX_ARRAY, virtualIndexBuffer.realSize, GL_DYNAMIC_DRAW);
 
+        // TODO: fill uniform data
+        var uniformData = GlVulkanSharedBuffer.uniformDataBufferHost.map(GL_UNIFORM_BUFFER, GL_MAP_WRITE_BIT);
+
         // TODO: copy using Vulkan API!
-        GL45.glCopyNamedBufferSubData(virtualVertexBuffer.glStorageBuffer, geometryData.vertexBuffer.glStorageBuffer, virtualVertexBuffer.offset.get(0), geometryData.vertexBuffer.offset.get(0), virtualVertexBuffer.realSize);
-        GL45.glCopyNamedBufferSubData(virtualIndexBuffer.glStorageBuffer, geometryData.indexBuffer.glStorageBuffer, virtualIndexBuffer.offset.get(0), geometryData.indexBuffer.offset.get(0), virtualIndexBuffer.realSize);
+        GL45.glMemoryBarrier(GL_ELEMENT_ARRAY_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT | GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
+        GL45.glCopyNamedBufferSubData(
+                virtualVertexBuffer.glStorageBuffer, geometryData.vertexBuffer.glStorageBuffer,
+                virtualVertexBuffer.offset.get(0), geometryData.vertexBuffer.offset.get(0),
+                virtualVertexBuffer.realSize);
+        GL45.glCopyNamedBufferSubData(
+                virtualIndexBuffer.glStorageBuffer, geometryData.indexBuffer.glStorageBuffer,
+                virtualIndexBuffer.offset.get(0), geometryData.indexBuffer.offset.get(0),
+                virtualIndexBuffer.realSize);
+        GL45.glCopyNamedBufferSubData(
+                GlVulkanSharedBuffer.uniformDataBufferHost.glStorageBuffer, geometryData.uniformDataBuffer.glStorageBuffer,
+                GlVulkanSharedBuffer.uniformDataBufferHost.offset.get(0), geometryData.uniformDataBuffer.offset.get(0),
+                GlVulkanSharedBuffer.uniformStride);
 
         //
-
+        collectedDraws.add(geometryData);
+        drawCount++;
     }
 
     // for building draw into acceleration structures

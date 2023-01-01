@@ -37,7 +37,7 @@ public class GlContext {
     public static GlBaseVirtualBuffer.VirtualBufferObj dummyCache = new GlBaseVirtualBuffer.VirtualBufferObj();
 
     //
-    public static void initialize() throws IOException {
+    public static void initialize() throws Exception {
         rendererObj = new GlRendererObj(null, new RendererCInfo(){
 
         });
