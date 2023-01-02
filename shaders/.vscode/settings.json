@@ -1,0 +1,9 @@
+{
+    "glsllint.glslangValidatorArgs": {
+        ".glsl"             : "--client vulkan100 --target-env spirv1.6 dummy.comp",
+        "final.comp"        : "--client vulkan100 --target-env spirv1.6 -o final.comp.spv",
+        "triangle.frag"        : "--client vulkan100 --target-env spirv1.6 -o triangle.frag.spv",
+        "triangle.vert"        : "--client vulkan100 --target-env spirv1.6 -o triangle.vert.spv",
+        "*"                 : "--client vulkan100 --target-env spirv1.6"
+    }
+}

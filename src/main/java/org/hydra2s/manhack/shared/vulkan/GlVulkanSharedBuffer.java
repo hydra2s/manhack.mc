@@ -15,6 +15,7 @@ import org.lwjgl.opengl.GL45;
 import org.lwjgl.util.vma.VmaVirtualBlockCreateInfo;
 import org.lwjgl.vulkan.VkAccelerationStructureBuildRangeInfoKHR;
 import org.lwjgl.vulkan.VkAccelerationStructureInstanceKHR;
+import org.lwjgl.vulkan.VkMultiDrawInfoEXT;
 import org.lwjgl.vulkan.VkTransformMatrixKHR;
 
 //
@@ -43,8 +44,8 @@ public class GlVulkanSharedBuffer implements GlBaseSharedBuffer {
     //
     public static final long uniformStride = 768L;
     public static final long maxDrawCalls = 1024L;
-    public static final long averageVertexCount = 2048L;
-    public static final long averageVertexStride = 128L;
+    public static final long averageVertexCount = 4096L;
+    public static final long averageVertexStride = 64L;
 
     // TODO: unify with GlRendererObj
     public static AccelerationStructureObj.BottomAccelerationStructureObj bottomLvl = null;
@@ -52,12 +53,14 @@ public class GlVulkanSharedBuffer implements GlBaseSharedBuffer {
     public static MemoryAllocationObj.BufferObj instanceBuffer = null;
     public static VkAccelerationStructureInstanceKHR instanceInfo = null;
     public static VkAccelerationStructureBuildRangeInfoKHR.Buffer drawRanges = null;
+    public static VkMultiDrawInfoEXT.Buffer multiDraw = null;
 
     // TODO: unify with GlRendererObj
     public static void initialize() throws Exception {
 
         //
         sharedBufferMap = new HashMap<Integer, VkSharedBuffer>(){{
+            // roundly 800Mb for all index and vertex data, in host and GPU
             put(0, createBuffer(averageVertexCount * averageVertexStride * maxDrawCalls * 3L, true));  // for GL shared memory!!!
             put(1, createBuffer(averageVertexCount * averageVertexStride * maxDrawCalls * 3L, false)); // for temp memory
             put(2, createBuffer(uniformStride * maxDrawCalls, false));
@@ -74,7 +77,7 @@ public class GlVulkanSharedBuffer implements GlBaseSharedBuffer {
         // create the largest acceleration structure allocation (up to 2 million)
         var _memoryAllocator = GlContext.rendererObj.memoryAllocator;
 
-        //
+        // Counting 4096 * 3 * 1024 (12 million * 128 = 1.5Gb) may to be very deadly...
         bottomLvl = new AccelerationStructureObj.BottomAccelerationStructureObj(GlContext.rendererObj.logicalDevice.getHandle(), new AccelerationStructureCInfo.BottomAccelerationStructureCInfo(){{
             memoryAllocator = _memoryAllocator.getHandle().get();
             geometries = new ArrayList<>() {{

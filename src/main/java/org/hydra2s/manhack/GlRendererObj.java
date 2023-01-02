@@ -1,12 +1,17 @@
 package org.hydra2s.manhack;
 
 //
+import net.fabricmc.loader.api.FabricLoader;
 import org.hydra2s.manhack.collector.GlDrawCollector;
 import org.hydra2s.manhack.shared.vulkan.GlVulkanSharedBuffer;
 import org.hydra2s.noire.descriptors.*;
 import org.hydra2s.noire.objects.*;
 import org.hydra2s.utils.Generator;
 import org.hydra2s.utils.Promise;
+import org.lwjgl.opengl.EXTMemoryObjectWin32;
+import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL13;
+import org.lwjgl.opengl.GL45;
 import org.lwjgl.system.MemoryUtil;
 import org.lwjgl.vulkan.*;
 
@@ -14,15 +19,24 @@ import org.lwjgl.vulkan.*;
 import java.io.IOException;
 import java.nio.IntBuffer;
 import java.nio.LongBuffer;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.concurrent.Future;
 import java.util.function.Function;
 
 //
+import static org.lwjgl.opengl.EXTMemoryObject.*;
+import static org.lwjgl.opengl.EXTMemoryObjectWin32.glImportMemoryWin32HandleEXT;
 import static org.lwjgl.opengl.EXTSemaphore.*;
 import static org.lwjgl.opengl.EXTSemaphoreWin32.GL_HANDLE_TYPE_OPAQUE_WIN32_EXT;
 import static org.lwjgl.opengl.EXTSemaphoreWin32.glImportSemaphoreWin32HandleEXT;
+import static org.lwjgl.opengl.GL11.GL_RGBA8;
+import static org.lwjgl.opengl.GL11.GL_TEXTURE_2D;
+import static org.lwjgl.opengl.GL30.GL_RGBA32F;
 import static org.lwjgl.system.MemoryUtil.*;
 import static org.lwjgl.vulkan.KHRAccelerationStructure.VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
 import static org.lwjgl.vulkan.KHRAccelerationStructure.VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
@@ -38,14 +52,19 @@ public class GlRendererObj extends BasicObj {
     public PipelineLayoutObj pipelineLayout;
     public WindowObj window;
     public SwapChainObj swapchain;
+    public IntBuffer glSwapchainImages;
     public Generator<Integer> processor;
 
     public LongBuffer fences;
     public ArrayList<Promise<Integer>> promises = new ArrayList<Promise<Integer>>();
     public ArrayList<VkCommandBuffer> commandBuffers = new ArrayList<VkCommandBuffer>();
     public Iterator<Integer> process;
-    //public PipelineObj.ComputePipelineObj finalComp;
-    //public PipelineObj.GraphicsPipelineObj trianglePipeline;
+
+    // TODO: Needs to load OpenGL shader, and Vulkan shaders
+    public PipelineObj.ComputePipelineObj finalComp;
+    public PipelineObj.GraphicsPipelineObj trianglePipeline;
+    public ShaderProgram glShowProgram;
+
     public ImageSetCInfo.FBLayout fbLayout;
     public ImageSetObj.FramebufferObj framebuffer;
     //public AccelerationStructureObj.TopAccelerationStructureObj topLvl;
@@ -54,6 +73,7 @@ public class GlRendererObj extends BasicObj {
     //
     public int glSignalSemaphore = 0;
     public int glWaitSemaphore = 0;
+    public int glVertexArray = 0;
 
     //
     public GlRendererObj initializer() throws IOException {
@@ -103,8 +123,8 @@ public class GlRendererObj extends BasicObj {
     }
 
     //
-    public GlRendererObj pipelines() throws IOException {
-        //var finalCompSpv = Files.readAllBytes(Path.of("./shaders/final.comp.spv"));
+    public GlRendererObj pipelines() throws Exception {
+        //
         var _pipelineLayout = this.pipelineLayout;
         var _memoryAllocator = memoryAllocator;
 
@@ -162,23 +182,29 @@ public class GlRendererObj extends BasicObj {
         var _fbLayout = this.fbLayout;
 
         //
-        //this.finalComp = new PipelineObj.ComputePipelineObj(logicalDevice.getHandle(), new PipelineCInfo.ComputePipelineCInfo(){{
-            //pipelineLayout = _pipelineLayout.getHandle().get();
-            //computeCode = memAlloc(finalCompSpv.length).put(0, finalCompSpv);
-        //}});
+        var finalCompSpv = Files.readAllBytes(Path.of(FabricLoader.getInstance().getGameDir().toString(), "./shaders/final.comp.spv"));
+        this.finalComp = new PipelineObj.ComputePipelineObj(logicalDevice.getHandle(), new PipelineCInfo.ComputePipelineCInfo(){{
+            pipelineLayout = _pipelineLayout.getHandle().get();
+            computeCode = memAlloc(finalCompSpv.length).put(0, finalCompSpv);
+        }});
 
         //
-        //var fragSpv = Files.readAllBytes(Path.of("./shaders/triangle.frag.spv"));
-        //var vertSpv = Files.readAllBytes(Path.of("./shaders/triangle.vert.spv"));
-        //this.trianglePipeline = new PipelineObj.GraphicsPipelineObj(logicalDevice.getHandle(), new PipelineCInfo.GraphicsPipelineCInfo(){{
-            //pipelineLayout = _pipelineLayout.getHandle().get();
-            //fbLayout = _fbLayout;
-            //sourceMap = new HashMap<>(){{
-                //put(VK_SHADER_STAGE_FRAGMENT_BIT, memAlloc(fragSpv.length).put(0, fragSpv));
-                //put(VK_SHADER_STAGE_VERTEX_BIT, memAlloc(vertSpv.length).put(0, vertSpv));
-            //}};
+        var fragSpv = Files.readAllBytes(Path.of(FabricLoader.getInstance().getGameDir().toString(), "./shaders/triangle.frag.spv"));
+        var vertSpv = Files.readAllBytes(Path.of(FabricLoader.getInstance().getGameDir().toString(), "./shaders/triangle.vert.spv"));
+        this.trianglePipeline = new PipelineObj.GraphicsPipelineObj(logicalDevice.getHandle(), new PipelineCInfo.GraphicsPipelineCInfo(){{
+            pipelineLayout = _pipelineLayout.getHandle().get();
+            fbLayout = _fbLayout;
+            sourceMap = new HashMap<>(){{
+                put(VK_SHADER_STAGE_FRAGMENT_BIT, memAlloc(fragSpv.length).put(0, fragSpv));
+                put(VK_SHADER_STAGE_VERTEX_BIT, memAlloc(vertSpv.length).put(0, vertSpv));
+            }};
+        }});
 
-        //}});
+        //
+        this.glShowProgram = new ShaderProgram();
+        this.glShowProgram.createVertexShader(new String(Files.readAllBytes(Path.of(FabricLoader.getInstance().getGameDir().toString(), "./shaders/show.vert")), StandardCharsets.UTF_8));
+        this.glShowProgram.createFragmentShader(new String(Files.readAllBytes(Path.of(FabricLoader.getInstance().getGameDir().toString(), "./shaders/show.frag")), StandardCharsets.UTF_8));
+        this.glShowProgram.link();
 
         return this;
     }
@@ -257,6 +283,18 @@ public class GlRendererObj extends BasicObj {
         // Wait a Vulkan, signal to OpenGL
         swapchain.present(_queue, memLongBuffer(memAddress(swapchain.semaphoreRenderingAvailable.getHandle().ptr(), 0), 1));
         glWaitSemaphoreEXT(glWaitSemaphore, memAllocInt(0), memAllocInt(0), memAllocInt(0));
+
+        // TODO: may failed...
+        // Currently, draws only red screen of debug
+        /*
+        glShowProgram.bind();
+        GL45.glBindVertexArray(this.glVertexArray);
+        GL45.glActiveTexture(GL13.GL_TEXTURE0);
+        GL45.glBindTexture(GL13.GL_TEXTURE_2D, glSwapchainImages.get(imageIndex));
+        GL45.glDisable(GL45.GL_CULL_FACE);
+        GL45.glDrawArrays(GL11.GL_TRIANGLES, 0, 6);
+        */
+
         //System.out.println("GL semaphore is probably broken...");
 
         // TODO: available only when fully replace to Vulkan API...
@@ -269,21 +307,32 @@ public class GlRendererObj extends BasicObj {
 
     //
     public GlRendererObj rendering() {
-
+        //
         for (var I=0;I<this.swapchain.getImageCount();I++) {
             var cmdBuf = this.logicalDevice.allocateCommand(this.logicalDevice.getCommandPool(0));
             var pushConst = memAllocInt(4);
+
+            //
             pushConst.put(0, swapchain.getImageView(I).DSC_ID);
             pushConst.put(1, framebuffer.writingImageViews.get(0).DSC_ID);
+
+            //
+            memLongBuffer(memAddress(pushConst, 2), 1).put(0, 0L);
+            memLongBuffer(memAddress(pushConst, 4), 1).put(0, 0L);
 
             //
             if (GlVulkanSharedBuffer.topLvl != null) {
                 memLongBuffer(memAddress(pushConst, 2), 1).put(0, GlVulkanSharedBuffer.topLvl.getDeviceAddress());
             }
 
+            //
+            if (GlVulkanSharedBuffer.uniformDataBuffer != null) {
+                memLongBuffer(memAddress(pushConst, 4), 1).put(0, GlVulkanSharedBuffer.uniformDataBuffer.address);
+            }
+
             int finalI = I;
             this.logicalDevice.writeCommand(cmdBuf, (_cmdBuf_)->{
-                //this.trianglePipeline.cmdDraw(cmdBuf, VkMultiDrawInfoEXT.calloc(1).put(0, VkMultiDrawInfoEXT.calloc().vertexCount(3).firstVertex(0)), this.framebuffer.getHandle().get(), memByteBuffer(pushConst), 0);
+                //this.trianglePipeline.cmdDraw(cmdBuf, VkMultiDrawInfoEXT.calloc(1).put(0, GlVulkanSharedBuffer.multiDraw, this.framebuffer.getHandle().get(), memByteBuffer(pushConst), 0);
                 //this.finalComp.cmdDispatch(cmdBuf, VkExtent3D.calloc().width(1280/32).height(720/6).depth(1), memByteBuffer(pushConst), 0);
 
                 // FOR TEST ONLY!
@@ -331,9 +380,16 @@ public class GlRendererObj extends BasicObj {
         this.promises = new ArrayList<Promise<Integer>>();
 
         // EXAMPLE!
+        this.glVertexArray = GL45.glCreateVertexArrays();
+        GL45.glCreateTextures(GL45.GL_TEXTURE_2D, glSwapchainImages = memAllocInt(fences.remaining()));
         for (var I=0;I<fences.remaining();I++) {
             vkCreateFence(logicalDevice.device, VkFenceCreateInfo.calloc().sType(VK_STRUCTURE_TYPE_FENCE_CREATE_INFO).flags(VK_FENCE_CREATE_SIGNALED_BIT), null, fences.slice(I, 1));
             this.promises.add(new Promise<Integer>());
+
+            //
+            int glMemory = 0;
+            glImportMemoryWin32HandleEXT(glMemory = glCreateMemoryObjectsEXT(), this.swapchain.getImageObj(I).memoryRequirements2.memoryRequirements().size(), EXTMemoryObjectWin32.GL_HANDLE_TYPE_OPAQUE_WIN32_EXT, this.swapchain.getImageObj(I).getWin32Handle().get(0));
+            glTextureStorageMem2DEXT(glSwapchainImages.get(I), 1, GL_RGBA8, 1280, 720, glMemory, this.swapchain.getImageObj(I).memoryOffset);
         }
 
         //
@@ -358,7 +414,7 @@ public class GlRendererObj extends BasicObj {
     }
 
     //
-    public GlRendererObj(Handle base, Handle handle) throws IOException {
+    public GlRendererObj(Handle base, Handle handle) throws Exception {
         super(base, handle);
 
         this.initializer();
@@ -370,7 +426,7 @@ public class GlRendererObj extends BasicObj {
     }
 
     //
-    public GlRendererObj(Handle base, RendererCInfo cInfo) throws IOException {
+    public GlRendererObj(Handle base, RendererCInfo cInfo) throws Exception {
         super(base, cInfo);
 
         this.initializer();

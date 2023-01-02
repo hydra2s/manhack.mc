@@ -27,6 +27,7 @@ import org.joml.Vector3f;
 import org.lwjgl.opengl.GL45;
 import org.lwjgl.vulkan.VkAccelerationStructureBuildRangeInfoKHR;
 import org.lwjgl.vulkan.VkImageSubresourceRange;
+import org.lwjgl.vulkan.VkMultiDrawInfoEXT;
 import org.lwjgl.vulkan.VkTransformMatrixKHR;
 
 //
@@ -107,6 +108,8 @@ public class GlDrawCollector {
     // will reset and deallocated every draw...
     public static ArrayList<DrawCallObj> collectedDraws = new ArrayList<>();
     public static int drawCount = 0;
+    public static long elementCount = 0;
+    public static boolean potentialOverflow = false;
 
     // deallocate and reset all draws data
     public static void resetDraw() {
@@ -121,8 +124,14 @@ public class GlDrawCollector {
                 throw new RuntimeException(e);
             }
         });
+
+        //
         collectedDraws.clear();
+
+        //
         drawCount = 0;
+        elementCount = 0;
+        potentialOverflow = false;
 
         //
         if (sharedBuffer.vb.get(0) != 0) {
@@ -140,12 +149,6 @@ public class GlDrawCollector {
 
         // isn't valid! must be drawn in another layer, and directly.
         if (mode != GL_TRIANGLES) { return; }
-
-        //
-        if (count > GlVulkanSharedBuffer.averageVertexCount*3) {
-            System.out.println("WARNING! Potential Vertex Count Overflow...");
-            return;
-        }
 
         // TODO: uint8 index type may to be broken or corrupted...
         if (type == GL_UNSIGNED_BYTE || type == GL_BYTE) { return; }
@@ -263,13 +266,9 @@ public class GlDrawCollector {
         //
         var object = boundShaderProgramI.getSamplers().get("Sampler0");
         int l = -1;
-        if (object instanceof Framebuffer) {
-            l = ((Framebuffer)object).getColorAttachment();
-        } else if (object instanceof AbstractTexture) {
-            l = ((AbstractTexture)object).getGlId();
-        } else if (object instanceof Integer) {
-            l = (Integer)object;
-        }
+        if (object instanceof Framebuffer)     { l = ((Framebuffer)object).getColorAttachment(); } else
+        if (object instanceof AbstractTexture) { l = ((AbstractTexture)object).getGlId(); } else
+        if (object instanceof Integer)         { l = (Integer)object; }
 
         // default image view values
         uniformData.putInt(metaOffset, -1);
@@ -298,7 +297,15 @@ public class GlDrawCollector {
 
         //
         collectedDraws.add(drawCallData);
-        drawCount++;
+        drawCount++; elementCount += count;
+
+        //
+        if ((elementCount / drawCount) > GlVulkanSharedBuffer.averageVertexCount*3) {
+            potentialOverflow = true;
+            System.out.println("WARNING! Potential Average Vertex Count Overflow...");
+        } else {
+            potentialOverflow = false;
+        }
     }
 
     // for building draw into acceleration structures
@@ -319,6 +326,7 @@ public class GlDrawCollector {
         //
         GlVulkanSharedBuffer.instanceInfo.transform(VkTransformMatrixKHR.calloc().matrix(fTransform));
         GlVulkanSharedBuffer.drawRanges = VkAccelerationStructureBuildRangeInfoKHR.calloc(collectedDraws.size());
+        GlVulkanSharedBuffer.multiDraw = VkMultiDrawInfoEXT.calloc(collectedDraws.size());
 
         //
         //System.out.println("DEBUG! Draw Call Count: " + collectedDraws.size());
@@ -328,11 +336,18 @@ public class GlDrawCollector {
 
             //
             var cDraw = collectedDraws.get(I);
+
+            //
             GlVulkanSharedBuffer.drawRanges.get(I)
                 .primitiveCount(cDraw.primitiveCount)
                 .firstVertex(0)
                 .primitiveOffset(0)
                 .transformOffset(0);
+
+            //
+            GlVulkanSharedBuffer.multiDraw.get(I)
+                .firstVertex(0)
+                .vertexCount(cDraw.primitiveCount*3);
 
             //
             cInfo.geometries.add(new DataCInfo.TriangleGeometryCInfo() {{
@@ -349,8 +364,6 @@ public class GlDrawCollector {
                 }};
             }});
         }
-
-
 
         //
         GlVulkanSharedBuffer.bottomLvl.recallGeometryInfo();
