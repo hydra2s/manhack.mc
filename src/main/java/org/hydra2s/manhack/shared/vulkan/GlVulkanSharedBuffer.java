@@ -13,6 +13,7 @@ import org.hydra2s.noire.objects.MemoryAllocationObj;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.opengl.GL45;
 import org.lwjgl.util.vma.VmaVirtualBlockCreateInfo;
+import org.lwjgl.vulkan.VkAccelerationStructureBuildRangeInfoKHR;
 import org.lwjgl.vulkan.VkAccelerationStructureInstanceKHR;
 import org.lwjgl.vulkan.VkTransformMatrixKHR;
 
@@ -48,6 +49,7 @@ public class GlVulkanSharedBuffer implements GlBaseSharedBuffer {
     public static AccelerationStructureObj.TopAccelerationStructureObj topLvl = null;
     public static MemoryAllocationObj.BufferObj instanceBuffer = null;
     public static VkAccelerationStructureInstanceKHR instanceInfo = null;
+    public static VkAccelerationStructureBuildRangeInfoKHR.Buffer drawRanges = null;
 
     // TODO: unify with GlRendererObj
     public static void initialize() throws Exception {
@@ -68,12 +70,14 @@ public class GlVulkanSharedBuffer implements GlBaseSharedBuffer {
         uniformDataBuffer.data(GL_UNIFORM_BUFFER, uniformStride * 1024L, GL_DYNAMIC_DRAW);
 
 
-        // create largest acceleration structure allocation (up to 2 million)
+        // create the largest acceleration structure allocation (up to 2 million)
         var _memoryAllocator = GlContext.rendererObj.memoryAllocator;
+
+
         bottomLvl = new AccelerationStructureObj.BottomAccelerationStructureObj(GlContext.rendererObj.logicalDevice.getHandle(), new AccelerationStructureCInfo.BottomAccelerationStructureCInfo(){{
             memoryAllocator = _memoryAllocator.getHandle().get();
-            geometries = new ArrayList<DataCInfo.TriangleGeometryCInfo>(){{
-                for (int I=0;I<maxDrawCalls;I++) {
+            geometries = new ArrayList<>() {{
+                for (int I = 0; I < maxDrawCalls; I++) {
                     add(new DataCInfo.TriangleGeometryCInfo() {{
                         vertexBinding = new DataCInfo.VertexBindingCInfo() {{
                             stride = 12;

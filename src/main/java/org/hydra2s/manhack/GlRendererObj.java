@@ -1,6 +1,8 @@
 package org.hydra2s.manhack;
 
 //
+import org.hydra2s.manhack.collector.GlDrawCollector;
+import org.hydra2s.manhack.shared.vulkan.GlVulkanSharedBuffer;
 import org.hydra2s.noire.descriptors.*;
 import org.hydra2s.noire.objects.*;
 import org.hydra2s.utils.Generator;
@@ -181,100 +183,10 @@ public class GlRendererObj extends BasicObj {
         return this;
     }
 
-    //
+    // TODO: merge from `GLVulkanSharedBuffer`
     public GlRendererObj acceleration() {
         var _pipelineLayout = this.pipelineLayout;
         var _memoryAllocator = memoryAllocator;
-
-        /*
-        //
-        var triangleBuffer = new MemoryAllocationObj.BufferObj(this.logicalDevice.getHandle(), new MemoryAllocationCInfo.BufferCInfo(){{
-            isHost = true;
-            isDevice = true;
-            size = 16 * 3;
-            usage = VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-            memoryAllocator = _memoryAllocator.getHandle().get();
-        }});
-
-        //
-        var tmapped = triangleBuffer.map(16*3, 0);
-        tmapped.asFloatBuffer().put(0, new float[]{
-             0.5F, -0.5F, 0.F, 1.F,
-            -0.5F, -0.5F, 0.F, 1.F,
-             0.0F,  0.5F, 0.F, 1.F
-        });
-        triangleBuffer.unmap();
-
-        //
-        this.bottomLvl = new AccelerationStructureObj.BottomAccelerationStructureObj(this.logicalDevice.getHandle(), new AccelerationStructureCInfo.BottomAccelerationStructureCInfo(){{
-            memoryAllocator = _memoryAllocator.getHandle().get();
-            geometries = new ArrayList<DataCInfo.TriangleGeometryCInfo>(){{
-                add(new DataCInfo.TriangleGeometryCInfo(){{
-                    vertexBinding = new DataCInfo.VertexBindingCInfo(){{
-                        address = triangleBuffer.getDeviceAddress();
-                        stride = 16;
-                        format = VK_FORMAT_R32G32B32_SFLOAT;
-                        vertexCount = 3;
-                    }};
-                }});
-            }};
-        }});
-
-        //
-        var instanceBuffer = new MemoryAllocationObj.BufferObj(this.logicalDevice.getHandle(), new MemoryAllocationCInfo.BufferCInfo(){{
-            isHost = true;
-            isDevice = true;
-            size = VkAccelerationStructureInstanceKHR.SIZEOF;
-            usage = VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-            memoryAllocator = _memoryAllocator.getHandle().get();
-        }});
-
-        //
-        var imapped = instanceBuffer.map(VkAccelerationStructureInstanceKHR.SIZEOF, 0);
-        var instanceInfo = VkAccelerationStructureInstanceKHR.create(memAddress(imapped));
-        instanceInfo.mask(0xFF);
-        instanceInfo.accelerationStructureReference(this.bottomLvl.getDeviceAddress());
-        instanceInfo.flags(0);
-        instanceInfo.transform(VkTransformMatrixKHR.calloc().matrix(memAllocFloat(12).put(0, new float[]{
-            1.0F, 0.0F, 0.0F, 0.0F,
-            0.0F, 1.0F, 0.0F, 0.0F,
-            0.0F, 0.0F, 1.0F, 0.0F
-        })));
-        instanceBuffer.unmap();
-
-        this.topLvl = new AccelerationStructureObj.TopAccelerationStructureObj(this.logicalDevice.getHandle(), new AccelerationStructureCInfo.TopAccelerationStructureCInfo(){{
-            memoryAllocator = _memoryAllocator.getHandle().get();
-            instances = new DataCInfo.InstanceGeometryCInfo(){{
-                instanceBinding = new DataCInfo.InstanceBindingCInfo(){{
-                    address = instanceBuffer.getDeviceAddress();
-                    vertexCount = 1;
-                }};
-            }};
-        }});
-
-        //
-        this.submitOnce((cmdBuf)->{
-
-            triangleBuffer.cmdSynchronizeFromHost(cmdBuf);
-            this.bottomLvl.cmdBuild(cmdBuf, VkAccelerationStructureBuildRangeInfoKHR.calloc(1)
-                    .primitiveCount(1)
-                    .firstVertex(0)
-                    .primitiveOffset(0)
-                    .transformOffset(0),
-                    VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR);
-
-            instanceBuffer.cmdSynchronizeFromHost(cmdBuf);
-            this.topLvl.cmdBuild(cmdBuf, VkAccelerationStructureBuildRangeInfoKHR.calloc(1)
-                    .primitiveCount(1)
-                    .firstVertex(0)
-                    .primitiveOffset(0)
-                    .transformOffset(0),
-                    VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR);
-
-            return VK_SUCCESS;
-        });*/
-
-        //
         return this;
     }
 
@@ -299,10 +211,13 @@ public class GlRendererObj extends BasicObj {
 
     //public Generator<Integer> generate() {
     public void generate() {
+
+        // Wait a OpenGL signal to Vulkan...
+        glSignalSemaphoreEXT(glSignalSemaphore, memAllocInt(0), memAllocInt(0), memAllocInt(0));
         var imageIndex = swapchain.acquireImageIndex(swapchain.semaphoreImageAvailable.getHandle().get());
         var promise = promises.get(imageIndex);
 
-        //
+        // crap operation...
         do {
             if (promise.state().equals(Future.State.RUNNING)) {
                 //this.yield(VK_NOT_READY);
@@ -314,25 +229,46 @@ public class GlRendererObj extends BasicObj {
 
         // TODO: use in glContext
         // TODO: bind with swapchain images
-        glSignalSemaphoreEXT(glSignalSemaphore, memAllocInt(0), memAllocInt(0), memAllocInt(0));
 
         //
+        GlDrawCollector.buildDraw();
+
+        //
+        this.submitOnce((cmdBuf)->{
+            GlVulkanSharedBuffer.bottomLvl.cmdBuild(cmdBuf, VkAccelerationStructureBuildRangeInfoKHR.calloc(1)
+                        .primitiveCount(1)
+                        .firstVertex(0)
+                        .primitiveOffset(0)
+                        .transformOffset(0),
+                VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR);
+
+            //
+            GlVulkanSharedBuffer.instanceBuffer.cmdSynchronizeFromHost(cmdBuf);
+            GlVulkanSharedBuffer.topLvl.cmdBuild(cmdBuf, VkAccelerationStructureBuildRangeInfoKHR.calloc(1)
+                        .primitiveCount(1)
+                        .firstVertex(0)
+                        .primitiveOffset(0)
+                        .transformOffset(0),
+                VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR);
+
+            return VK_SUCCESS;
+        });
+
+        // TODO: dynamic commanding
         logicalDevice.submitCommand(new BasicCInfo.SubmitCmd(){{
-            waitSemaphores = memLongBuffer(memAddress(swapchain.semaphoreImageAvailable.getHandle().ptr(), 0), 1);
-            signalSemaphores = memLongBuffer(memAddress(swapchain.semaphoreRenderingAvailable.getHandle().ptr(), 0), 1);
-            dstStageMask = memAllocInt(1).put(0, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
             queue = _queue;
             cmdBuf = commandBuffers.get(imageIndex);
             onDone = promises.get(imageIndex);
         }});
 
-        // TODO: use in glContext
-        // TODO: bind with swapchain images
-        glWaitSemaphoreEXT(glWaitSemaphore, memAllocInt(0), memAllocInt(0), memAllocInt(0));
-
         //
         promises.set(imageIndex, new Promise<>());
+
+        // TODO: use in glContext
+        // TODO: bind with swapchain images
+        // Wait a Vulkan, signal to OpenGL
         swapchain.present(_queue, memLongBuffer(memAddress(swapchain.semaphoreRenderingAvailable.getHandle().ptr(), 0), 1));
+        glWaitSemaphoreEXT(glWaitSemaphore, memAllocInt(0), memAllocInt(0), memAllocInt(0));
 
         // TODO: available only when fully replace to Vulkan API...
         /*return (this.processor = new Generator<Integer>() {
@@ -350,7 +286,9 @@ public class GlRendererObj extends BasicObj {
             var pushConst = memAllocInt(4);
             pushConst.put(0, swapchain.getImageView(I).DSC_ID);
             pushConst.put(1, framebuffer.writingImageViews.get(0).DSC_ID);
-            //memLongBuffer(memAddress(pushConst, 2), 1).put(0, this.topLvl.getDeviceAddress());
+
+
+            memLongBuffer(memAddress(pushConst, 2), 1).put(0, GlVulkanSharedBuffer.topLvl.getDeviceAddress());
 
             int finalI = I;
             this.logicalDevice.writeCommand(cmdBuf, (_cmdBuf_)->{

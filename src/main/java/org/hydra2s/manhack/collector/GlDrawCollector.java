@@ -17,27 +17,25 @@ import org.hydra2s.manhack.ducks.vertex.VertexFormatInterface;
 import org.hydra2s.manhack.shared.vulkan.GlVulkanSharedBuffer;
 import org.hydra2s.manhack.shared.vulkan.GlVulkanSharedTexture;
 import org.hydra2s.manhack.virtual.buffer.GlVulkanVirtualBuffer;
+import org.hydra2s.noire.descriptors.AccelerationStructureCInfo;
+import org.hydra2s.noire.descriptors.DataCInfo;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.lwjgl.opengl.GL45;
+import org.lwjgl.vulkan.VkAccelerationStructureBuildRangeInfoKHR;
 
 //
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Vector;
 
 //
-import static org.lwjgl.opengl.GL11.GL_VERTEX_ARRAY;
 import static org.lwjgl.opengl.GL15.GL_DYNAMIC_DRAW;
 import static org.lwjgl.opengl.GL30.GL_MAP_WRITE_BIT;
 import static org.lwjgl.opengl.GL31.GL_UNIFORM_BUFFER;
 import static org.lwjgl.opengl.GL42.*;
-import static org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER;
 import static org.lwjgl.opengl.GL44.GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT;
 import static org.lwjgl.system.MemoryUtil.memAllocFloat;
-import static org.lwjgl.system.MemoryUtil.memAllocPointer;
 import static org.lwjgl.util.vma.Vma.vmaClearVirtualBlock;
-import static org.lwjgl.util.vma.Vma.vmaCreateVirtualBlock;
 import static org.lwjgl.vulkan.EXTIndexTypeUint8.VK_INDEX_TYPE_UINT8_EXT;
 import static org.lwjgl.vulkan.VK10.*;
 
@@ -60,15 +58,15 @@ public class GlDrawCollector {
         public void writeBinding(ByteBuffer by, long bfOffset, long bfIndex) {
             // address, offset, format, stride, size
 
-            var bOffset = (int) (bfOffset + 0 + bfIndex * bindingStride);
+            var bOffset = (int) (bfOffset + bfIndex * bindingStride);
             if (virtualBuffer != null) {
-                by.putLong(bOffset + 0, virtualBuffer.address + relativeOffset);
+                by.putLong(bOffset, virtualBuffer.address + relativeOffset);
                 by.putLong(bOffset + 8, virtualBuffer.realSize - relativeOffset);
                 by.putInt(bOffset + 16, (int) relativeOffset);
                 by.putInt(bOffset + 20, virtualBuffer.stride);
                 by.putInt(bOffset + 24, format); // TODO: custom format encoding for shader
             } else {
-                by.putLong(bOffset + 0, 0);
+                by.putLong(bOffset, 0);
                 by.putLong(bOffset + 8, 0);
                 by.putInt(bOffset + 16, 0);
                 by.putInt(bOffset + 20, 0);
@@ -102,7 +100,7 @@ public class GlDrawCollector {
     }
 
     // will reset and deallocated every draw...
-    public static ArrayList<DrawCallObj> collectedDraws = new ArrayList<DrawCallObj>();
+    public static ArrayList<DrawCallObj> collectedDraws = new ArrayList<>();
     public static int drawCount = 0;
 
     // deallocate and reset all draws data
@@ -139,7 +137,7 @@ public class GlDrawCollector {
         if (mode != GL_TRIANGLES) { return; };
 
         // TODO: uint8 index type may to be broken or corrupted...
-        if (type == GL_UNSIGNED_BYTE || type == GL_BYTE) { return; };
+        //if (type == GL_UNSIGNED_BYTE || type == GL_BYTE) { return; };
 
         //
         var boundVertexBuffer = GlContext.boundVertexBuffer;
@@ -182,33 +180,33 @@ public class GlDrawCollector {
         var offsetMap = boundVertexFormatI.getOffsets();
         var keyList = vertexFEL.keySet().asList();
 
-        //
+        // TODO: replace by array based
         var posElement = vertexFEL.get("Position");
-        var posOffset = posElement != null ? offsetMap.get(keyList.indexOf("Position")) : null;
+        var posOffset = posElement != null ? offsetMap.getInt(keyList.indexOf("Position")) : 0;
         drawCallData.vertexBinding = new VirtualTempBinding();
         drawCallData.vertexBinding.virtualBuffer = posElement != null ? drawCallData.vertexBuffer : null;
         drawCallData.vertexBinding.format = VK_FORMAT_R32G32B32_SFLOAT;
         drawCallData.vertexBinding.relativeOffset = posOffset;
 
-        //
+        // TODO: replace by array based
         var uvElement = vertexFEL.get("UV0");
-        var uvOffset = uvElement != null ? offsetMap.get(keyList.indexOf("UV0")) : null;
+        var uvOffset = uvElement != null ? offsetMap.getInt(keyList.indexOf("UV0")) : 0;
         drawCallData.uvBinding = new VirtualTempBinding();
         drawCallData.uvBinding.virtualBuffer = uvElement != null ? drawCallData.vertexBuffer : null;
         drawCallData.uvBinding.format = VK_FORMAT_R32G32_SFLOAT;
         drawCallData.uvBinding.relativeOffset = uvOffset;
 
-        //
+        // TODO: replace by array based
         var colorElement = vertexFEL.get("Color");
-        var colorOffset = colorElement != null ? offsetMap.get(keyList.indexOf("Color")) : null;
+        var colorOffset = colorElement != null ? offsetMap.getInt(keyList.indexOf("Color")) : 0;
         drawCallData.colorBinding = new VirtualTempBinding();
         drawCallData.colorBinding.virtualBuffer = colorElement != null ? drawCallData.vertexBuffer : null;
         drawCallData.colorBinding.format = VK_FORMAT_R32_UINT; // rgba8unorm de-facto
         drawCallData.colorBinding.relativeOffset = colorOffset;
 
-        //
+        // TODO: replace by array based
         var normalElement = vertexFEL.get("Normal");
-        var normalOffset = normalElement != null ? offsetMap.getInt(keyList.indexOf("Normal")) : null;
+        var normalOffset = normalElement != null ? offsetMap.getInt(keyList.indexOf("Normal")) : 0;
         drawCallData.normalBinding = new VirtualTempBinding();
         drawCallData.normalBinding.virtualBuffer = normalElement != null ? drawCallData.vertexBuffer : null;
         drawCallData.normalBinding.format = VK_FORMAT_R32_UINT; // rgba8snorm de-facto
@@ -249,26 +247,28 @@ public class GlDrawCollector {
             l = (Integer)object;
         }
 
-        // TODO: get image view pipeline index
+        // TODO: get image view pipeline layout index
         var vkTexture = GlVulkanSharedTexture.sharedImageMap.get(l);
         if (vkTexture != null) {
 
         }
 
+
+
         // TODO: copy using Vulkan API!
         GL45.glMemoryBarrier(GL_ELEMENT_ARRAY_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT | GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
         GL45.glCopyNamedBufferSubData(
-                virtualVertexBuffer.glStorageBuffer, drawCallData.vertexBuffer.glStorageBuffer,
-                virtualVertexBuffer.offset.get(0),   drawCallData.vertexBuffer.offset.get(0),
-                virtualVertexBuffer.realSize);
+            virtualVertexBuffer.glStorageBuffer, drawCallData.vertexBuffer.glStorageBuffer,
+            virtualVertexBuffer.offset.get(0),   drawCallData.vertexBuffer.offset.get(0),
+            virtualVertexBuffer.realSize);
         GL45.glCopyNamedBufferSubData(
-                virtualIndexBuffer.glStorageBuffer, drawCallData.indexBuffer.glStorageBuffer,
-                virtualIndexBuffer.offset.get(0),   drawCallData.indexBuffer.offset.get(0),
-                virtualIndexBuffer.realSize);
+            virtualIndexBuffer.glStorageBuffer, drawCallData.indexBuffer.glStorageBuffer,
+            virtualIndexBuffer.offset.get(0),   drawCallData.indexBuffer.offset.get(0),
+            virtualIndexBuffer.realSize);
         GL45.glCopyNamedBufferSubData(
-                GlVulkanSharedBuffer.uniformDataBufferHost.glStorageBuffer, drawCallData.uniformDataBuffer.glStorageBuffer,
-                GlVulkanSharedBuffer.uniformDataBufferHost.offset.get(0),   drawCallData.uniformDataBuffer.offset.get(0),
-                GlVulkanSharedBuffer.uniformStride);
+            GlVulkanSharedBuffer.uniformDataBufferHost.glStorageBuffer, drawCallData.uniformDataBuffer.glStorageBuffer,
+            GlVulkanSharedBuffer.uniformDataBufferHost.offset.get(0),   drawCallData.uniformDataBuffer.offset.get(0),
+            GlVulkanSharedBuffer.uniformStride);
 
         //
         collectedDraws.add(drawCallData);
@@ -277,7 +277,36 @@ public class GlDrawCollector {
 
     // for building draw into acceleration structures
     public static void buildDraw() {
+        var cInfo = (AccelerationStructureCInfo)GlVulkanSharedBuffer.bottomLvl.cInfo;
+        cInfo.geometries.clear();
 
+        //
+        GlVulkanSharedBuffer.drawRanges = VkAccelerationStructureBuildRangeInfoKHR.calloc(collectedDraws.size());
+        for (int I=0;I<collectedDraws.size();I++) {
+
+            //
+            var cDraw = collectedDraws.get(I);
+            GlVulkanSharedBuffer.drawRanges.get(I)
+                .primitiveCount(cDraw.primitiveCount)
+                .firstVertex(0)
+                .primitiveOffset(0)
+                .transformOffset(0);
+
+            //
+            cInfo.geometries.add(new DataCInfo.TriangleGeometryCInfo() {{
+                vertexBinding = new DataCInfo.VertexBindingCInfo() {{
+                    address = cDraw.vertexBinding.virtualBuffer.address + cDraw.vertexBinding.relativeOffset;
+                    stride = cDraw.vertexBinding.virtualBuffer.stride;
+                    vertexCount = (int) (cDraw.vertexBinding.virtualBuffer.realSize / cDraw.vertexBinding.virtualBuffer.stride);
+                    format = cDraw.vertexBinding.format;
+                }};
+                indexBinding = new DataCInfo.IndexBindingCInfo() {{
+                    address = cDraw.indexBuffer.address;
+                    vertexCount = (int) (cDraw.indexBuffer.realSize / cDraw.indexBuffer.stride);
+                    type = cDraw.indexBuffer.indexType;
+                }};
+            }});
+        }
     }
 
     // probably, prepare buffers and commands (indirect draw)
