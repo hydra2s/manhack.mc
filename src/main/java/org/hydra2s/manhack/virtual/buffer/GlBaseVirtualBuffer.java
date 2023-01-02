@@ -84,6 +84,9 @@ public interface GlBaseVirtualBuffer {
             this.assert_();
             if (this.target == GL_ARRAY_BUFFER && this.glStorageBuffer > 0 && this.stride > 0 && this.vao > 0) {
                 GL45.glVertexArrayVertexBuffer(this.vao, this.bindingIndex, this.glStorageBuffer, this.offset.get(0), this.stride);
+
+                // TODO: remove from VAO
+                GlContext.boundWithVao.put(this.vao, this);
             }
             if (this.target == GL_ELEMENT_ARRAY_BUFFER && this.glStorageBuffer > 0) {
                 glBindBuffer(this.target, this.glStorageBuffer);

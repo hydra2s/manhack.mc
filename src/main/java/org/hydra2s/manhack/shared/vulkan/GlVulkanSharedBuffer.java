@@ -63,16 +63,17 @@ public class GlVulkanSharedBuffer implements GlBaseSharedBuffer {
             // roundly 800Mb for all index and vertex data, in host and GPU
             put(0, createBuffer(averageVertexCount * averageVertexStride * maxDrawCalls * 3L, true));  // for GL shared memory!!!
             put(1, createBuffer(averageVertexCount * averageVertexStride * maxDrawCalls * 3L, false)); // for temp memory
-            put(2, createBuffer(uniformStride * maxDrawCalls, false));
+            put(2, createBuffer(uniformStride * maxDrawCalls, true));
+            put(3, createBuffer(uniformStride * maxDrawCalls, false));
         }};
 
         //
-        uniformDataBufferHost = new GlVulkanVirtualBuffer.VirtualBufferObj(0);
-        uniformDataBuffer = new GlVulkanVirtualBuffer.VirtualBufferObj(2);
+        uniformDataBufferHost = new GlVulkanVirtualBuffer.VirtualBufferObj(2);
+        uniformDataBuffer = new GlVulkanVirtualBuffer.VirtualBufferObj(3);
 
         // TODO: correct sizeof of uniform
-        uniformDataBufferHost.allocate(uniformStride * maxDrawCalls, GL_DYNAMIC_DRAW).data(GL_UNIFORM_BUFFER, uniformStride * maxDrawCalls, GL_DYNAMIC_DRAW);
-        uniformDataBuffer.allocate(uniformStride * maxDrawCalls, GL_DYNAMIC_DRAW).data(GL_UNIFORM_BUFFER, uniformStride * maxDrawCalls, GL_DYNAMIC_DRAW);
+        uniformDataBufferHost.deallocate().allocate(uniformStride * maxDrawCalls, GL_DYNAMIC_DRAW).data(GL_UNIFORM_BUFFER, uniformStride * maxDrawCalls, GL_DYNAMIC_DRAW);
+        uniformDataBuffer.deallocate().allocate(uniformStride * maxDrawCalls, GL_DYNAMIC_DRAW).data(GL_UNIFORM_BUFFER, uniformStride * maxDrawCalls, GL_DYNAMIC_DRAW);
         
         // create the largest acceleration structure allocation (up to 2 million)
         var _memoryAllocator = GlContext.rendererObj.memoryAllocator;

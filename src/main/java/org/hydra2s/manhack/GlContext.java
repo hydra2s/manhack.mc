@@ -23,6 +23,7 @@ public class GlContext {
     public static GlRendererObj rendererObj;
 
     //
+    public static HashMap<Integer, GlBaseVirtualBuffer.VirtualBufferObj> boundWithVao = new HashMap<Integer, GlBaseVirtualBuffer.VirtualBufferObj>();
     public static VertexBuffer boundVertexBuffer;
     public static ShaderProgram boundShaderProgram; // only for download a uniform data
 

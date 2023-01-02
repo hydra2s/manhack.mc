@@ -229,7 +229,7 @@ public class GlRendererObj extends BasicObj {
     }
 
     //
-    public GlRendererObj tickRendering () {
+    public GlRendererObj tickRendering () throws Exception {
         this.logicalDevice.doPolling();
 
         // TODO: available only when fully replace to Vulkan API!
@@ -248,7 +248,7 @@ public class GlRendererObj extends BasicObj {
     };
 
     //public Generator<Integer> generate() {
-    public void generate() {
+    public void generate() throws Exception {
         //
         var _pipelineLayout = this.pipelineLayout;
         var _memoryAllocator = memoryAllocator;
@@ -308,6 +308,11 @@ public class GlRendererObj extends BasicObj {
 
         //
         this.submitOnce((cmdBuf)->{
+            //
+            GlVulkanSharedBuffer.sharedBufferMap.get(1).obj.cmdSynchronizeFromHost(cmdBuf);
+            GlVulkanSharedBuffer.sharedBufferMap.get(3).obj.cmdSynchronizeFromHost(cmdBuf);
+
+            //
             GlVulkanSharedBuffer.bottomLvl.cmdBuild(cmdBuf, GlVulkanSharedBuffer.drawRanges, VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR);
             GlVulkanSharedBuffer.instanceBuffer.cmdSynchronizeFromHost(cmdBuf);
             GlVulkanSharedBuffer.topLvl.cmdBuild(cmdBuf, VkAccelerationStructureBuildRangeInfoKHR.calloc(1)
@@ -348,6 +353,9 @@ public class GlRendererObj extends BasicObj {
         GL45.glBindTexture(GL13.GL_TEXTURE_2D, glSwapchainImages.get(imageIndex));
         GL45.glDisable(GL45.GL_CULL_FACE);
         GL45.glDrawArrays(GL11.GL_TRIANGLES, 0, 6);
+
+        //
+        GlDrawCollector.resetDraw();
 
         //System.out.println("GL semaphore is probably broken...");
 

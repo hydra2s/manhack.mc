@@ -31,11 +31,11 @@ void main() {
     vec3 dir = eOrigin.xyz/eOrigin.w - bOrigin.xyz/bOrigin.w;
 
     // let's ray trace Minecraft!
-    /*
+    
     if (accelStruct != 0) {
         //
         rayQueryEXT rayQuery;
-        rayQueryInitializeEXT(rayQuery, accelerationStructureEXT(accelStruct), gl_RayFlagsTerminateOnFirstHitEXT, 0xFF, bOrigin.xyz/bOrigin.w, 0.0001f, dir, 10000.f);
+        rayQueryInitializeEXT(rayQuery, accelerationStructureEXT(accelStruct), 0, 0xFF, bOrigin.xyz/bOrigin.w, 0.0001f, dir, 10000.f);
 
         //
         while(rayQueryProceedEXT(rayQuery)) {
@@ -52,8 +52,8 @@ void main() {
         }
     } else {
         imageStore(images[imageDesc], ivec2(gl_GlobalInvocationID.xy), vec4(0.f.xxx, 1.f));
-    }*/
+    }
 
     //
-    imageStore(images[imageDesc], ivec2(gl_GlobalInvocationID.xy), imageLoad(images[rasterImage], ivec2(gl_GlobalInvocationID.xy)));
+    //imageStore(images[imageDesc], ivec2(gl_GlobalInvocationID.xy), imageLoad(images[rasterImage], ivec2(gl_GlobalInvocationID.xy)));
 }

@@ -1,20 +1,27 @@
 package org.hydra2s.manhack.virtual.buffer;
 
 //
+import org.hydra2s.manhack.GlContext;
 import org.hydra2s.manhack.shared.vulkan.GlVulkanSharedBuffer;
+import org.hydra2s.noire.descriptors.BasicCInfo;
+import org.hydra2s.noire.descriptors.SwapChainCInfo;
+import org.lwjgl.opengl.GL45;
 
 //
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
 //
+import static org.lwjgl.opengl.EXTSemaphore.glSignalSemaphoreEXT;
+import static org.lwjgl.opengl.EXTSemaphore.glWaitSemaphoreEXT;
 import static org.lwjgl.opengl.GL11.GL_UNSIGNED_BYTE;
 import static org.lwjgl.opengl.GL30.GL_R8UI;
 import static org.lwjgl.opengl.GL30.GL_RED_INTEGER;
+import static org.lwjgl.opengl.GL42.*;
+import static org.lwjgl.opengl.GL44.GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT;
 import static org.lwjgl.opengl.GL45.glClearNamedBufferSubData;
 import static org.lwjgl.opengl.GL45.glNamedBufferSubData;
-import static org.lwjgl.system.MemoryUtil.memAlloc;
-import static org.lwjgl.system.MemoryUtil.memFree;
+import static org.lwjgl.system.MemoryUtil.*;
 import static org.lwjgl.util.vma.Vma.*;
 import static org.lwjgl.vulkan.VK10.*;
 
@@ -48,6 +55,20 @@ public class GlVulkanVirtualBuffer implements GlBaseVirtualBuffer {
 
         @Override
         public ByteBuffer map(int target, int access) {
+
+            // TODO: dedicated semaphore instead of swapchain
+            // Avoid OpenGL and Vulkan API mapping memory corruption
+            // Not helped...
+            /*
+            var queueFamilyIndex = 0;
+            glSignalSemaphoreEXT(GlContext.rendererObj.glSignalSemaphore, memAllocInt(0), memAllocInt(0), memAllocInt(0));
+            GlContext.rendererObj.logicalDevice.submitOnce(GlContext.rendererObj.logicalDevice.getCommandPool(queueFamilyIndex), new BasicCInfo.SubmitCmd(){{
+                waitSemaphores = memAllocLong(1).put(0, GlContext.rendererObj.swapchain.semaphoreImageAvailable.getHandle().get());
+                queue = GlContext.rendererObj.logicalDevice.getQueue(queueFamilyIndex, 0);
+            }}, (cmdBuf)->{
+                return VK_SUCCESS;
+            });*/
+
             return (this.allocatedMemory = this.mapped.obj.map(this.realSize, offset.get(0)));
         }
 
@@ -55,6 +76,20 @@ public class GlVulkanVirtualBuffer implements GlBaseVirtualBuffer {
         public void unmap(int target) {
             this.mapped.obj.unmap();
             this.allocatedMemory = null;
+
+            // TODO: dedicated semaphore instead of swapchain
+            // Avoid OpenGL and Vulkan API mapping memory corruption
+            // Not helped...
+            /*
+            var queueFamilyIndex = 0;
+            GlContext.rendererObj.logicalDevice.submitOnce(GlContext.rendererObj.logicalDevice.getCommandPool(queueFamilyIndex), new BasicCInfo.SubmitCmd(){{
+                signalSemaphores = memAllocLong(1).put(0, GlContext.rendererObj.swapchain.semaphoreRenderingAvailable.getHandle().get());
+                queue = GlContext.rendererObj.logicalDevice.getQueue(queueFamilyIndex, 0);
+            }}, (cmdBuf)->{
+                return VK_SUCCESS;
+            });
+            glWaitSemaphoreEXT(GlContext.rendererObj.glWaitSemaphore, memAllocInt(0), memAllocInt(0), memAllocInt(0));
+*/
         }
 
         @Override
@@ -63,9 +98,11 @@ public class GlVulkanVirtualBuffer implements GlBaseVirtualBuffer {
             if (this.allocId.get(0) != 0) {
                 if (this.glStorageBuffer > 0) {
                     glClearNamedBufferSubData(this.glStorageBuffer, GL_R8UI, this.offset.get(0), this.blockSize, GL_RED_INTEGER, GL_UNSIGNED_BYTE, memAlloc(1).put(0, (byte) 0));
+                    glMemoryBarrier(GL_ELEMENT_ARRAY_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT | GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
                 }
 
                 //
+                this.realSize = 0L;
                 this.blockSize = 0L;
                 this.offset.put(0, 0L);
 
@@ -90,10 +127,11 @@ public class GlVulkanVirtualBuffer implements GlBaseVirtualBuffer {
                 //System.out.println("WARNING! Size of virtual buffer was changed! " + this.blockSize + " != " + defaultSize);
                 //System.out.println("Virtual GL buffer ID: " + this.glVirtualBuffer);
 
-                // TODO: recopy to new chunk
-                deallocate();
+                // corrupted de-allocation!
+                //deallocate();
 
                 //
+                var oldAlloc = this.allocId.get(0);
                 int res = vmaVirtualAllocate(this.mapped.vb.get(0), this.allocCreateInfo.size(this.blockSize = defaultSize), this.allocId.put(0, 0L), this.offset.put(0, 0L));
                 if (res != VK_SUCCESS) {
                     System.out.println("Allocation Failed: " + res);
@@ -102,6 +140,12 @@ public class GlVulkanVirtualBuffer implements GlBaseVirtualBuffer {
 
                 // get device address from 
                 this.address = this.mapped.obj.getDeviceAddress() + this.offset.get(0);
+
+                // TODO: copy from old segment
+                // Avoid some data corruption
+                if (this.mapped != null && oldAlloc != 0) {
+                    vmaVirtualFree(this.mapped.vb.get(0), oldAlloc);
+                }
 
                 //
                 //System.out.println("Virtual buffer Size Changed: " + this.blockSize);
@@ -115,6 +159,7 @@ public class GlVulkanVirtualBuffer implements GlBaseVirtualBuffer {
             this.realSize = data.remaining();
             if (this.glStorageBuffer > 0) {
                 glNamedBufferSubData(this.glStorageBuffer, this.offset.get(0), data);
+                glMemoryBarrier(GL_ELEMENT_ARRAY_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT | GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
             }
             return this.bindVertex();
         }
@@ -125,6 +170,7 @@ public class GlVulkanVirtualBuffer implements GlBaseVirtualBuffer {
             this.realSize = size;
             if (this.glStorageBuffer > 0) {
                 glClearNamedBufferSubData(this.glStorageBuffer, GL_R8UI, this.offset.get(0), this.realSize = size, GL_RED_INTEGER, GL_UNSIGNED_BYTE, memAlloc(1).put(0, (byte) 0));
+                glMemoryBarrier(GL_ELEMENT_ARRAY_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT | GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
             }
             return this.bindVertex();
         }

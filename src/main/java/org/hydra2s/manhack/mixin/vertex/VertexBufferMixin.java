@@ -29,13 +29,13 @@ public class VertexBufferMixin implements VertexBufferInterface {
     @Shadow private VertexFormat.DrawMode drawMode;
 
     //
-    @Inject(method="bind", at=@At(value = "RETURN"))
+    @Inject(method="bind", at=@At(value = "HEAD"))
     void onBind(CallbackInfo ci) {
         GlContext.boundVertexBuffer = (VertexBuffer)(Object)this;
     }
 
     //
-    @Inject(method="unbind", at=@At(value = "RETURN"))
+    @Inject(method="unbind", at=@At(value = "HEAD"))
     private static void onUnbind(CallbackInfo ci) {
         GlContext.boundVertexBuffer = null;
     }
