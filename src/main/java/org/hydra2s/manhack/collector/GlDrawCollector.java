@@ -246,15 +246,23 @@ public class GlDrawCollector {
         drawCallData.normalBinding.relativeOffset = normalOffset;
 
         //
+        var modelView = boundShaderProgram.modelViewMat;
+        var mvTransform = modelView != null ? new Matrix4f(modelView.getFloatData()) : new Matrix4f().identity();
+
+        //
         var chunkOffset = boundShaderProgram.chunkOffset != null ? boundShaderProgram.chunkOffset.getFloatData() : memAllocFloat(3).put(0, 0.F).put(1, 0.F).put(2, 0.F);
-        var transform = new Matrix4f();
+        var transform = new Matrix4f().identity();
+        //transform.mul(mvTransform);
         transform.translate(new Vector3f(chunkOffset.get(0), chunkOffset.get(1), chunkOffset.get(2)));
         transform.transpose().get(uniformData);
 
         //
-        var bindingOffset = 16*4;
+        uniformData.putLong(16*4, drawCallData.indexBuffer.address);
+        uniformData.putInt(16*4 + 8, drawCallData.indexBuffer.indexType);
 
+        //
         // TODO: replace by array based
+        var bindingOffset = 16*4 + 16;
         drawCallData.vertexBinding.writeBinding(uniformData, bindingOffset, 0);
         drawCallData.normalBinding.writeBinding(uniformData, bindingOffset, 1);
         drawCallData.uvBinding.writeBinding(uniformData, bindingOffset, 2);
@@ -319,7 +327,7 @@ public class GlDrawCollector {
         // probka
         var fTransform = memAllocFloat(12);
         //var fTransform = memAllocFloat(16); // may corrupt instance data
-        var gTransform = new Matrix4f();
+        var gTransform = new Matrix4f().identity();
         gTransform.translate(new Vector3f((float) (-playerCamera.getPos().x), (float) (-playerCamera.getPos().y), (float) (-playerCamera.getPos().z)));
         gTransform.transpose().get3x4(fTransform);
 

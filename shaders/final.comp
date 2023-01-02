@@ -18,7 +18,10 @@
 //
 layout (rgba8, set = 0, binding = 0) uniform image2D images[];
 layout (local_size_x = 32, local_size_y = 6, local_size_z = 1) in;
-layout (push_constant, scalar) uniform constants { int imageDesc; int rasterImage; uint64_t accStruct; };
+layout (push_constant, scalar) uniform constants { int imageDesc; int rasterImage; };
+
+//
+#include "layout.glsl"
 
 //
 void main() {
@@ -44,5 +47,6 @@ void main() {
         imageStore(images[imageDesc], ivec2(gl_GlobalInvocationID.xy), vec4(0.f.xxx, 1.f));
     }*/
 
-    //imageStore(images[imageDesc], ivec2(gl_GlobalInvocationID.xy), imageLoad(images[rasterImage], ivec2(gl_GlobalInvocationID.xy)));
+    //
+    imageStore(images[imageDesc], ivec2(gl_GlobalInvocationID.xy), imageLoad(images[rasterImage], ivec2(gl_GlobalInvocationID.xy)));
 }

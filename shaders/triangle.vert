@@ -19,8 +19,11 @@ out gl_PerVertex { vec4 gl_Position; };
 
 //
 layout (location = 0) pervertexEXT out Inputs {
-	vec4 test;
+	vec2 uv;
 };
+
+//
+#include "layout.glsl"
 
 //
 void main() {

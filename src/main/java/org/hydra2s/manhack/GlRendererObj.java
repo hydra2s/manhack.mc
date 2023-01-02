@@ -2,12 +2,14 @@ package org.hydra2s.manhack;
 
 //
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.client.render.Camera;
 import org.hydra2s.manhack.collector.GlDrawCollector;
 import org.hydra2s.manhack.shared.vulkan.GlVulkanSharedBuffer;
 import org.hydra2s.noire.descriptors.*;
 import org.hydra2s.noire.objects.*;
 import org.hydra2s.utils.Generator;
 import org.hydra2s.utils.Promise;
+import org.joml.Matrix4f;
 import org.lwjgl.opengl.EXTMemoryObjectWin32;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL13;
@@ -74,6 +76,11 @@ public class GlRendererObj extends BasicObj {
     public int glSignalSemaphore = 0;
     public int glWaitSemaphore = 0;
     public int glVertexArray = 0;
+
+    //
+    public Matrix4f projectionMatrix = new Matrix4f().identity();
+    public Matrix4f viewMatrix = new Matrix4f().identity();
+    public Camera camera;
 
     //
     public GlRendererObj initializer() throws IOException {
@@ -237,6 +244,9 @@ public class GlRendererObj extends BasicObj {
 
     //public Generator<Integer> generate() {
     public void generate() {
+        //
+        var _pipelineLayout = this.pipelineLayout;
+        var _memoryAllocator = memoryAllocator;
 
         // Wait a OpenGL signal to Vulkan...
         glSignalSemaphoreEXT(glSignalSemaphore, memAllocInt(0), memAllocInt(0), memAllocInt(0));
@@ -252,7 +262,42 @@ public class GlRendererObj extends BasicObj {
 
         //
         var _queue = logicalDevice.getQueue(0, 0);
-        
+
+        //
+        var pushConst = memAllocInt(4);
+        pushConst.put(0, swapchain.getImageView(imageIndex).DSC_ID);
+        pushConst.put(1, framebuffer.writingImageViews.get(0).DSC_ID);
+
+        //
+        var uniformData = _pipelineLayout.uniformDescriptorBuffer.map(256, 0);
+        uniformData.putLong(0, 0L);
+        uniformData.putLong(8, 0L);
+
+        // get acceleration structure into
+        if (GlVulkanSharedBuffer.topLvl != null) {
+            uniformData.putLong(0, GlVulkanSharedBuffer.topLvl.getDeviceAddress());
+        }
+
+        // get uniform buffers into
+        if (GlVulkanSharedBuffer.uniformDataBuffer != null) {
+            uniformData.putLong(8, GlVulkanSharedBuffer.uniformDataBuffer.address);
+        }
+
+        // get matrices to slices
+        projectionMatrix.get(memSlice(uniformData, 16, 16*4));
+        viewMatrix.get(memSlice(uniformData, 16 + 16*4, 16*4));
+
+        // put f32vec4
+        if (camera != null) {
+            uniformData.putFloat(16 + 32 * 4 + 4 * 0, (float) camera.getPos().x);
+            uniformData.putFloat(16 + 32 * 4 + 4 * 1, (float) camera.getPos().y);
+            uniformData.putFloat(16 + 32 * 4 + 4 * 2, (float) camera.getPos().z);
+        }
+        uniformData.putFloat(16 + 32*4 + 4*3, 1.F);
+
+        //
+        _pipelineLayout.uniformDescriptorBuffer.unmap();
+
         //
         GlDrawCollector.buildDraw();
         this.submitOnce((cmdBuf)->{
@@ -264,6 +309,9 @@ public class GlRendererObj extends BasicObj {
                         .primitiveOffset(0)
                         .transformOffset(0),
                 VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR);
+
+            _pipelineLayout.uniformDescriptorBuffer.cmdSynchronizeFromHost(cmdBuf);
+            this.trianglePipeline.cmdDraw(cmdBuf, GlVulkanSharedBuffer.multiDraw, this.framebuffer.getHandle().get(), memByteBuffer(pushConst), 0);
 
             return VK_SUCCESS;
         });
@@ -285,15 +333,12 @@ public class GlRendererObj extends BasicObj {
         glWaitSemaphoreEXT(glWaitSemaphore, memAllocInt(0), memAllocInt(0), memAllocInt(0));
 
         // TODO: may failed...
-        // Currently, draws only red screen of debug
-        /*
         glShowProgram.bind();
         GL45.glBindVertexArray(this.glVertexArray);
         GL45.glActiveTexture(GL13.GL_TEXTURE0);
         GL45.glBindTexture(GL13.GL_TEXTURE_2D, glSwapchainImages.get(imageIndex));
         GL45.glDisable(GL45.GL_CULL_FACE);
         GL45.glDrawArrays(GL11.GL_TRIANGLES, 0, 6);
-        */
 
         //System.out.println("GL semaphore is probably broken...");
 
@@ -308,6 +353,10 @@ public class GlRendererObj extends BasicObj {
     //
     public GlRendererObj rendering() {
         //
+        var _pipelineLayout = this.pipelineLayout;
+        var _memoryAllocator = memoryAllocator;
+
+        //
         for (var I=0;I<this.swapchain.getImageCount();I++) {
             var cmdBuf = this.logicalDevice.allocateCommand(this.logicalDevice.getCommandPool(0));
             var pushConst = memAllocInt(4);
@@ -317,26 +366,13 @@ public class GlRendererObj extends BasicObj {
             pushConst.put(1, framebuffer.writingImageViews.get(0).DSC_ID);
 
             //
-            memLongBuffer(memAddress(pushConst, 2), 1).put(0, 0L);
-            memLongBuffer(memAddress(pushConst, 4), 1).put(0, 0L);
-
-            //
-            if (GlVulkanSharedBuffer.topLvl != null) {
-                memLongBuffer(memAddress(pushConst, 2), 1).put(0, GlVulkanSharedBuffer.topLvl.getDeviceAddress());
-            }
-
-            //
-            if (GlVulkanSharedBuffer.uniformDataBuffer != null) {
-                memLongBuffer(memAddress(pushConst, 4), 1).put(0, GlVulkanSharedBuffer.uniformDataBuffer.address);
-            }
-
             int finalI = I;
             this.logicalDevice.writeCommand(cmdBuf, (_cmdBuf_)->{
-                //this.trianglePipeline.cmdDraw(cmdBuf, VkMultiDrawInfoEXT.calloc(1).put(0, GlVulkanSharedBuffer.multiDraw, this.framebuffer.getHandle().get(), memByteBuffer(pushConst), 0);
-                //this.finalComp.cmdDispatch(cmdBuf, VkExtent3D.calloc().width(1280/32).height(720/6).depth(1), memByteBuffer(pushConst), 0);
+                _pipelineLayout.uniformDescriptorBuffer.cmdSynchronizeFromHost(cmdBuf);
+                this.finalComp.cmdDispatch(cmdBuf, VkExtent3D.calloc().width(1280/32).height(720/6).depth(1), memByteBuffer(pushConst), 0);
 
                 // FOR TEST ONLY!
-                vkCmdClearColorImage(cmdBuf, this.swapchain.getImage(finalI), VK_IMAGE_LAYOUT_GENERAL, VkClearColorValue.calloc().float32(memAllocFloat(4).put(0, 1.F).put(1, 0.F).put(2, 0.F).put(3, 0.F)), VkImageSubresourceRange.calloc().aspectMask(VK_IMAGE_ASPECT_COLOR_BIT).layerCount(1).levelCount(1));
+                //vkCmdClearColorImage(cmdBuf, this.swapchain.getImage(finalI), VK_IMAGE_LAYOUT_GENERAL, VkClearColorValue.calloc().float32(memAllocFloat(4).put(0, 1.F).put(1, 0.F).put(2, 0.F).put(3, 0.F)), VkImageSubresourceRange.calloc().aspectMask(VK_IMAGE_ASPECT_COLOR_BIT).layerCount(1).levelCount(1));
                 return VK_SUCCESS;
             });
 

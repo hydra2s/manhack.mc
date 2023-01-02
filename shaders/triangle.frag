@@ -19,6 +19,9 @@
 layout (location = 0) out vec4 fcolor;
 
 //
+#include "layout.glsl"
+
+//
 void main() {
 	fcolor = vec4(gl_BaryCoordEXT, 1.0);
 }
