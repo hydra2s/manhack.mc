@@ -19,10 +19,14 @@ import org.hydra2s.manhack.shared.vulkan.GlVulkanSharedTexture;
 import org.hydra2s.manhack.virtual.buffer.GlVulkanVirtualBuffer;
 import org.hydra2s.noire.descriptors.AccelerationStructureCInfo;
 import org.hydra2s.noire.descriptors.DataCInfo;
+import org.hydra2s.noire.descriptors.ImageViewCInfo;
+import org.hydra2s.noire.objects.ImageViewObj;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.lwjgl.opengl.GL45;
 import org.lwjgl.vulkan.VkAccelerationStructureBuildRangeInfoKHR;
+import org.lwjgl.vulkan.VkImageSubresourceRange;
+import org.lwjgl.vulkan.VkTransformMatrixKHR;
 
 //
 import java.nio.ByteBuffer;
@@ -146,6 +150,10 @@ public class GlDrawCollector {
         }
 
         //
+        var _pipelineLayout = GlContext.rendererObj.pipelineLayout;
+        var _memoryAllocator = GlContext.rendererObj.memoryAllocator;
+
+        //
         var boundVertexBuffer = GlContext.boundVertexBuffer;
         var boundVertexFormat = GlContext.boundVertexFormat;
         var boundShaderProgram = GlContext.boundShaderProgram; // only for download a uniform data
@@ -218,15 +226,9 @@ public class GlDrawCollector {
         drawCallData.normalBinding.format = VK_FORMAT_R32_UINT; // rgba8snorm de-facto
         drawCallData.normalBinding.relativeOffset = normalOffset;
 
-        // will used in top level of acceleration structure
-        var playerCamera = MinecraftClient.getInstance().gameRenderer.getCamera();
-
         //
         var chunkOffset = boundShaderProgram.chunkOffset != null ? boundShaderProgram.chunkOffset.getFloatData() : memAllocFloat(3).put(0, 0.F).put(1, 0.F).put(2, 0.F);
-
-        // needs for acceleration structure
         var transform = new Matrix4f();
-        //transform.translate(new Vector3f((float) (chunkOffset.get(0) - playerCamera.getPos().x), (float) (chunkOffset.get(1) - playerCamera.getPos().y), (float) (chunkOffset.get(2) - playerCamera.getPos().z)));
         transform.translate(new Vector3f(chunkOffset.get(0), chunkOffset.get(1), chunkOffset.get(2)));
         transform.transpose().get(uniformData);
 
@@ -239,7 +241,7 @@ public class GlDrawCollector {
         drawCallData.uvBinding.writeBinding(uniformData, bindingOffset, 2);
         drawCallData.colorBinding.writeBinding(uniformData, bindingOffset, 3);
 
-        // TODO: fill metadata and combined samplers
+        //
         var metaOffset = bindingOffset + VirtualTempBinding.bindingStride*4;
 
         //
@@ -253,15 +255,17 @@ public class GlDrawCollector {
             l = (Integer)object;
         }
 
-        // TODO: get image view pipeline layout index
+        // default image view values
+        uniformData.putInt(metaOffset, -1);
+
+        // TODO: get more images/samplers
         var vkTexture = GlVulkanSharedTexture.sharedImageMap.get(l);
         if (vkTexture != null) {
-
+            uniformData.putInt(metaOffset, vkTexture.imageView.DSC_ID);
         }
 
-
-
         // TODO: copy using Vulkan API!
+        // TODO: add zero-copy in-HOST support.
         GL45.glMemoryBarrier(GL_ELEMENT_ARRAY_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT | GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
         GL45.glCopyNamedBufferSubData(
             virtualVertexBuffer.glStorageBuffer, drawCallData.vertexBuffer.glStorageBuffer,
@@ -286,7 +290,17 @@ public class GlDrawCollector {
         var cInfo = (AccelerationStructureCInfo)GlVulkanSharedBuffer.bottomLvl.cInfo;
         cInfo.geometries.clear();
 
+        // will be used in top level of acceleration structure
+        var playerCamera = MinecraftClient.getInstance().gameRenderer.getCamera();
+
+        // probka
+        var fTransform = memAllocFloat(12);
+        var gTransform = new Matrix4f();
+        gTransform.translate(new Vector3f((float) (-playerCamera.getPos().x), (float) (-playerCamera.getPos().y), (float) (-playerCamera.getPos().z)));
+        gTransform.transpose().get(fTransform);
+
         //
+        GlVulkanSharedBuffer.instanceInfo.transform(VkTransformMatrixKHR.calloc().matrix(fTransform));
         GlVulkanSharedBuffer.drawRanges = VkAccelerationStructureBuildRangeInfoKHR.calloc(collectedDraws.size());
         for (int I=0;I<collectedDraws.size();I++) {
 

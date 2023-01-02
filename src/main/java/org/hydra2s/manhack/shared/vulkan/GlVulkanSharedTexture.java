@@ -1,17 +1,24 @@
 package org.hydra2s.manhack.shared.vulkan;
 
+//
 import com.mojang.blaze3d.platform.GlStateManager;
 import net.minecraft.client.texture.NativeImage;
 import org.hydra2s.manhack.GlContext;
 import org.hydra2s.manhack.shared.interfaces.GlBaseSharedTexture;
+import org.hydra2s.noire.descriptors.ImageViewCInfo;
 import org.hydra2s.noire.descriptors.MemoryAllocationCInfo;
+import org.hydra2s.noire.objects.ImageViewObj;
 import org.hydra2s.noire.objects.MemoryAllocationObj;
+import org.hydra2s.noire.objects.SamplerObj;
 import org.lwjgl.vulkan.VkExtent3D;
+import org.lwjgl.vulkan.VkImageSubresourceRange;
 
+//
 import java.nio.IntBuffer;
 import java.util.HashMap;
 import java.util.Map;
 
+//
 import static org.lwjgl.opengl.EXTMemoryObject.glCreateMemoryObjectsEXT;
 import static org.lwjgl.opengl.EXTMemoryObject.glTexStorageMem2DEXT;
 import static org.lwjgl.opengl.EXTMemoryObjectWin32.GL_HANDLE_TYPE_OPAQUE_WIN32_EXT;
@@ -31,10 +38,14 @@ public class GlVulkanSharedTexture implements GlBaseSharedTexture {
         public VkExtent3D extent;
         public MemoryAllocationObj.ImageObj obj;
         public MemoryAllocationCInfo.ImageCInfo imageCreateInfo;
+        public ImageViewObj imageView;
     };
 
     //
     public static Map<Integer, VkSharedImage> sharedImageMap = new HashMap<Integer, VkSharedImage>();
+
+    // will be used for every texture
+    public static SamplerObj nearestSamplerObj = null;
 
     //
     public static void prepareImage(NativeImage.InternalFormat internalFormat, int id, int maxLevel, int width, int height) {
@@ -45,8 +56,6 @@ public class GlVulkanSharedTexture implements GlBaseSharedTexture {
             }
         } else {
             VkSharedImage sharedImage = sharedImageMap.get(id);
-
-
             if (sharedImage == null) {
                 sharedImage = new VkSharedImage();
                 sharedImage.extent = VkExtent3D.calloc();
@@ -72,6 +81,8 @@ public class GlVulkanSharedTexture implements GlBaseSharedTexture {
                 var _memoryAllocator = GlContext.rendererObj.memoryAllocator;
                 VkSharedImage finalResource = sharedImage;
                 int finalVkFormat = vkFormat;
+
+                // TODO: add mip-map levels support
                 sharedImage.obj = new MemoryAllocationObj.ImageObj(GlContext.rendererObj.logicalDevice.getHandle(), sharedImage.imageCreateInfo = new MemoryAllocationCInfo.ImageCInfo(){{
                     extent3D = finalResource.extent;
                     format = finalVkFormat;
@@ -80,6 +91,17 @@ public class GlVulkanSharedTexture implements GlBaseSharedTexture {
                     isHost = false;
                     isDevice = true;
                     memoryAllocator = _memoryAllocator.getHandle().get();
+                }});
+
+                // TODO: add writable support
+                // TODO: add mip-map levels support
+                VkSharedImage finalSharedImage = sharedImage;
+                sharedImage.imageView = new ImageViewObj(GlContext.rendererObj.logicalDevice.getHandle(), new ImageViewCInfo() {{
+                    image = finalSharedImage.obj.getHandle().get();
+                    subresourceRange = VkImageSubresourceRange.calloc().layerCount(1).baseArrayLayer(0).levelCount(1).baseMipLevel(0).aspectMask(VK_IMAGE_ASPECT_COLOR_BIT);
+                    pipelineLayout = _pipelineLayout.getHandle().get();
+                    imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+                    type = "sampled";
                 }});
 
                 // TODO: use DSA! Needs avoid using binding...

@@ -43,6 +43,8 @@ public class GlVulkanSharedBuffer implements GlBaseSharedBuffer {
     //
     public static final long uniformStride = 768L;
     public static final long maxDrawCalls = 1024L;
+    public static final long averageVertexCount = 2048L;
+    public static final long averageVertexStride = 128L;
 
     // TODO: unify with GlRendererObj
     public static AccelerationStructureObj.BottomAccelerationStructureObj bottomLvl = null;
@@ -56,8 +58,8 @@ public class GlVulkanSharedBuffer implements GlBaseSharedBuffer {
 
         //
         sharedBufferMap = new HashMap<Integer, VkSharedBuffer>(){{
-            put(0, createBuffer(1024L * 1024L * maxDrawCalls * 3L, true));  // for GL shared memory!!!
-            put(1, createBuffer(1024L * 1024L * maxDrawCalls * 3L, false)); // for temp memory
+            put(0, createBuffer(averageVertexCount * averageVertexStride * maxDrawCalls * 3L, true));  // for GL shared memory!!!
+            put(1, createBuffer(averageVertexCount * averageVertexStride * maxDrawCalls * 3L, false)); // for temp memory
             put(2, createBuffer(uniformStride * maxDrawCalls, false));
         }};
 
@@ -68,12 +70,11 @@ public class GlVulkanSharedBuffer implements GlBaseSharedBuffer {
         // TODO: correct sizeof of uniform
         uniformDataBufferHost.data(GL_UNIFORM_BUFFER, uniformStride, GL_DYNAMIC_DRAW);
         uniformDataBuffer.data(GL_UNIFORM_BUFFER, uniformStride * 1024L, GL_DYNAMIC_DRAW);
-
-
+        
         // create the largest acceleration structure allocation (up to 2 million)
         var _memoryAllocator = GlContext.rendererObj.memoryAllocator;
 
-
+        //
         bottomLvl = new AccelerationStructureObj.BottomAccelerationStructureObj(GlContext.rendererObj.logicalDevice.getHandle(), new AccelerationStructureCInfo.BottomAccelerationStructureCInfo(){{
             memoryAllocator = _memoryAllocator.getHandle().get();
             geometries = new ArrayList<>() {{
@@ -81,11 +82,11 @@ public class GlVulkanSharedBuffer implements GlBaseSharedBuffer {
                     add(new DataCInfo.TriangleGeometryCInfo() {{
                         vertexBinding = new DataCInfo.VertexBindingCInfo() {{
                             stride = 12;
-                            vertexCount = 2048 * 3;
+                            vertexCount = (int) (averageVertexCount * 3);
                             format = VK_FORMAT_R32G32B32_SFLOAT;
                         }};
                         indexBinding = new DataCInfo.IndexBindingCInfo() {{
-                            vertexCount = 2048 * 3;
+                            vertexCount = (int) (averageVertexCount * 3);
                             type = VK_INDEX_TYPE_UINT32;
                         }};
                     }});
