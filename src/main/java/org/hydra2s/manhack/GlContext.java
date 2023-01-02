@@ -24,7 +24,6 @@ public class GlContext {
 
     //
     public static VertexBuffer boundVertexBuffer;
-    public static VertexFormat boundVertexFormat;
     public static ShaderProgram boundShaderProgram; // only for download a uniform data
 
     //

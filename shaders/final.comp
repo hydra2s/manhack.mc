@@ -6,6 +6,7 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_int64 : enable
 #extension GL_EXT_shader_explicit_arithmetic_types_int32 : enable
 #extension GL_EXT_shader_explicit_arithmetic_types_int16 : enable
+#extension GL_EXT_shader_explicit_arithmetic_types_int8 : enable
 #extension GL_EXT_shader_explicit_arithmetic_types_float16 : enable
 #extension GL_EXT_nonuniform_qualifier : enable
 #extension GL_EXT_scalar_block_layout : enable
@@ -25,24 +26,30 @@ layout (push_constant, scalar) uniform constants { int imageDesc; int rasterImag
 
 //
 void main() {
-    vec3 origin = vec3(vec2(gl_GlobalInvocationID.xy) / vec2(1280, 720) * 2.f - 1.f, 1.f);
-    vec3 dir = vec3(0.f, 0.f, -1.f);
+    vec4 bOrigin = vec4(vec3(vec2(gl_GlobalInvocationID.xy) / vec2(1280, 720) * 2.f - 1.f, 0.f), 1.f) * inverse(projection);
+    vec4 eOrigin = vec4(vec3(vec2(gl_GlobalInvocationID.xy) / vec2(1280, 720) * 2.f - 1.f, 1.f), 1.f) * inverse(projection);
+    vec3 dir = eOrigin.xyz/eOrigin.w - bOrigin.xyz/bOrigin.w;
 
-    //
+    // let's ray trace Minecraft!
     /*
-    rayQueryEXT rayQuery;
-    rayQueryInitializeEXT(rayQuery, accelerationStructureEXT(accStruct), gl_RayFlagsTerminateOnFirstHitEXT, 0xFF, origin, 0.0001f, dir, 10000.f);
+    if (accelStruct != 0) {
+        //
+        rayQueryEXT rayQuery;
+        rayQueryInitializeEXT(rayQuery, accelerationStructureEXT(accelStruct), gl_RayFlagsTerminateOnFirstHitEXT, 0xFF, bOrigin.xyz/bOrigin.w, 0.0001f, dir, 10000.f);
 
-    //
-    while(rayQueryProceedEXT(rayQuery)) {
-        rayQueryConfirmIntersectionEXT(rayQuery);
-    }
+        //
+        while(rayQueryProceedEXT(rayQuery)) {
+            rayQueryConfirmIntersectionEXT(rayQuery);
+        }
 
-    //
-    if (rayQueryGetIntersectionTypeEXT(rayQuery, true) == gl_RayQueryCommittedIntersectionTriangleEXT) {
-        const vec2 bary_ = rayQueryGetIntersectionBarycentricsEXT(rayQuery, true);
-        const vec3 bary = vec3(1.f - bary_.x - bary_.y, bary_.xy);
-        imageStore(images[imageDesc], ivec2(gl_GlobalInvocationID.xy), vec4(bary, 1.f));
+        //
+        if (rayQueryGetIntersectionTypeEXT(rayQuery, true) == gl_RayQueryCommittedIntersectionTriangleEXT) {
+            const vec2 bary_ = rayQueryGetIntersectionBarycentricsEXT(rayQuery, true);
+            const vec3 bary = vec3(1.f - bary_.x - bary_.y, bary_.xy);
+            imageStore(images[imageDesc], ivec2(gl_GlobalInvocationID.xy), vec4(bary, 1.f));
+        } else {
+            imageStore(images[imageDesc], ivec2(gl_GlobalInvocationID.xy), vec4(0.f.xxx, 1.f));
+        }
     } else {
         imageStore(images[imageDesc], ivec2(gl_GlobalInvocationID.xy), vec4(0.f.xxx, 1.f));
     }*/

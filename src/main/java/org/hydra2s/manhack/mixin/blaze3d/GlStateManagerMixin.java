@@ -101,10 +101,10 @@ public class GlStateManagerMixin {
         vVBO.preDraw(); iVBO.preDraw();
         GL45.glMemoryBarrier(GL_ELEMENT_ARRAY_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT | GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
         GL11.glDrawElements(mode, count, type, indices + iVBO.offset.get(0));
+        GlDrawCollector.collectDraw(mode, count, type, indices);
         vVBO.postDraw(); iVBO.postDraw();
 
-        // may to be progar! may to be allocation overflow! may to be draw call stack exceeded! may to be BSOD!
-        GlDrawCollector.collectDraw(mode, count, type, indices);
+
     }
 
 

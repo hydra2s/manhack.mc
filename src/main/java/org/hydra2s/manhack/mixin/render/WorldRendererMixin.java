@@ -22,7 +22,7 @@ public class WorldRendererMixin {
     //
     @Inject(method="setupFrustum", at=@At("HEAD"))
     public void onSetupFrustum(MatrixStack matrices, Vec3d pos, Matrix4f projectionMatrix, CallbackInfo ci) {
-        GlContext.rendererObj.projectionMatrix = projectionMatrix;
+        GlContext.rendererObj.projectionMatrix = new Matrix4f().identity().mul(projectionMatrix).transpose();
     }
 
     //
@@ -31,6 +31,7 @@ public class WorldRendererMixin {
         GlContext.worldRendering = true;
         GlContext.rendererObj.camera = camera;
         camera.getRotation().get(GlContext.rendererObj.viewMatrix);
+        GlContext.rendererObj.viewMatrix = GlContext.rendererObj.viewMatrix.transpose();
         GlDrawCollector.resetDraw();
     }
 

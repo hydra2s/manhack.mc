@@ -71,8 +71,8 @@ public class GlVulkanSharedBuffer implements GlBaseSharedBuffer {
         uniformDataBuffer = new GlVulkanVirtualBuffer.VirtualBufferObj(2);
 
         // TODO: correct sizeof of uniform
-        uniformDataBufferHost.data(GL_UNIFORM_BUFFER, uniformStride, GL_DYNAMIC_DRAW);
-        uniformDataBuffer.data(GL_UNIFORM_BUFFER, uniformStride * 1024L, GL_DYNAMIC_DRAW);
+        uniformDataBufferHost.allocate(uniformStride * maxDrawCalls, GL_DYNAMIC_DRAW).data(GL_UNIFORM_BUFFER, uniformStride * maxDrawCalls, GL_DYNAMIC_DRAW);
+        uniformDataBuffer.allocate(uniformStride * maxDrawCalls, GL_DYNAMIC_DRAW).data(GL_UNIFORM_BUFFER, uniformStride * maxDrawCalls, GL_DYNAMIC_DRAW);
         
         // create the largest acceleration structure allocation (up to 2 million)
         var _memoryAllocator = GlContext.rendererObj.memoryAllocator;
@@ -163,9 +163,10 @@ public class GlVulkanSharedBuffer implements GlBaseSharedBuffer {
         var _memoryAllocator = GlContext.rendererObj.memoryAllocator;
 
         //
+        var _isHost = isHost;
         sharedBuffer.obj = new MemoryAllocationObj.BufferObj(GlContext.rendererObj.logicalDevice.getHandle(), sharedBuffer.bufferCreateInfo = new MemoryAllocationCInfo.BufferCInfo() {{
-            isHost = isHost; // false if !isHost and there is no resizableBAR support
-            isDevice = !isHost;
+            isHost = _isHost; // false if !isHost and there is no resizableBAR support
+            isDevice = !_isHost;
             size = defaultSize;
             usage = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
             memoryAllocator = _memoryAllocator.getHandle().get();

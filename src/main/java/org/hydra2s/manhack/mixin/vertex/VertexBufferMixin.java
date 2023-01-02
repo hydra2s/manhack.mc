@@ -32,14 +32,12 @@ public class VertexBufferMixin implements VertexBufferInterface {
     @Inject(method="bind", at=@At(value = "RETURN"))
     void onBind(CallbackInfo ci) {
         GlContext.boundVertexBuffer = (VertexBuffer)(Object)this;
-        GlContext.boundVertexFormat = vertexFormat;
     }
 
     //
     @Inject(method="unbind", at=@At(value = "RETURN"))
     private static void onUnbind(CallbackInfo ci) {
         GlContext.boundVertexBuffer = null;
-        GlContext.boundVertexFormat = null;
     }
 
     //

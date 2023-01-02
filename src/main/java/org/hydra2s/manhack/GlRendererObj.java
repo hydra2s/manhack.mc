@@ -40,6 +40,7 @@ import static org.lwjgl.opengl.GL11.GL_RGBA8;
 import static org.lwjgl.opengl.GL11.GL_TEXTURE_2D;
 import static org.lwjgl.opengl.GL30.GL_RGBA32F;
 import static org.lwjgl.system.MemoryUtil.*;
+import static org.lwjgl.system.MemoryUtil.memSlice;
 import static org.lwjgl.vulkan.KHRAccelerationStructure.VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
 import static org.lwjgl.vulkan.KHRAccelerationStructure.VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
 import static org.lwjgl.vulkan.VK10.*;
@@ -157,6 +158,8 @@ public class GlRendererObj extends BasicObj {
             //
             attachmentInfos = VkRenderingAttachmentInfo.calloc(1);
             attachmentInfos.get(0)
+                .loadOp(VK_ATTACHMENT_LOAD_OP_LOAD)
+                .storeOp(VK_ATTACHMENT_STORE_OP_STORE)
                 .clearValue(VkClearValue.calloc().color(VkClearColorValue.calloc()
                     .float32(memAllocFloat(4)
                         .put(0, 0.0F)
@@ -167,6 +170,8 @@ public class GlRendererObj extends BasicObj {
 
             // TODO: support only depth or only stencil
             depthStencilAttachmentInfo = VkRenderingAttachmentInfo.calloc()
+                .loadOp(VK_ATTACHMENT_LOAD_OP_LOAD)
+                .storeOp(VK_ATTACHMENT_STORE_OP_STORE)
                 .clearValue(VkClearValue.calloc().depthStencil(VkClearDepthStencilValue.calloc()
                     .depth(1.0F)
                     .stencil(0)));
@@ -248,6 +253,9 @@ public class GlRendererObj extends BasicObj {
         var _pipelineLayout = this.pipelineLayout;
         var _memoryAllocator = memoryAllocator;
 
+        //
+        GlDrawCollector.buildDraw();
+
         // Wait a OpenGL signal to Vulkan...
         glSignalSemaphoreEXT(glSignalSemaphore, memAllocInt(0), memAllocInt(0), memAllocInt(0));
         var imageIndex = swapchain.acquireImageIndex(swapchain.semaphoreImageAvailable.getHandle().get());
@@ -270,17 +278,17 @@ public class GlRendererObj extends BasicObj {
 
         //
         var uniformData = _pipelineLayout.uniformDescriptorBuffer.map(256, 0);
-        uniformData.putLong(0, 0L);
-        uniformData.putLong(8, 0L);
+        memSlice(uniformData, 0, 8).putLong(0, 0L);
+        memSlice(uniformData, 8, 8).putLong(0, 0L);
 
         // get acceleration structure into
         if (GlVulkanSharedBuffer.topLvl != null) {
-            uniformData.putLong(0, GlVulkanSharedBuffer.topLvl.getDeviceAddress());
+            memSlice(uniformData, 0, 8).putLong(0, GlVulkanSharedBuffer.topLvl.getDeviceAddress());
         }
 
         // get uniform buffers into
         if (GlVulkanSharedBuffer.uniformDataBuffer != null) {
-            uniformData.putLong(8, GlVulkanSharedBuffer.uniformDataBuffer.address);
+            memSlice(uniformData, 8, 8).putLong(0, GlVulkanSharedBuffer.uniformDataBuffer.address);
         }
 
         // get matrices to slices
@@ -289,17 +297,16 @@ public class GlRendererObj extends BasicObj {
 
         // put f32vec4
         if (camera != null) {
-            uniformData.putFloat(16 + 32 * 4 + 4 * 0, (float) camera.getPos().x);
-            uniformData.putFloat(16 + 32 * 4 + 4 * 1, (float) camera.getPos().y);
-            uniformData.putFloat(16 + 32 * 4 + 4 * 2, (float) camera.getPos().z);
+            memSlice(uniformData, 16 + 32 * 4 + 4 * 0, 4).putFloat(0, (float) camera.getPos().x);
+            memSlice(uniformData, 16 + 32 * 4 + 4 * 1, 4).putFloat(0, (float) camera.getPos().y);
+            memSlice(uniformData, 16 + 32 * 4 + 4 * 2, 4).putFloat(0, (float) camera.getPos().z);
+            memSlice(uniformData, 16 + 32 * 4 + 4 * 3, 4).putFloat(0, 1.F);
         }
-        uniformData.putFloat(16 + 32*4 + 4*3, 1.F);
 
         //
         _pipelineLayout.uniformDescriptorBuffer.unmap();
 
         //
-        GlDrawCollector.buildDraw();
         this.submitOnce((cmdBuf)->{
             GlVulkanSharedBuffer.bottomLvl.cmdBuild(cmdBuf, GlVulkanSharedBuffer.drawRanges, VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR);
             GlVulkanSharedBuffer.instanceBuffer.cmdSynchronizeFromHost(cmdBuf);
@@ -311,6 +318,8 @@ public class GlRendererObj extends BasicObj {
                 VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR);
 
             _pipelineLayout.uniformDescriptorBuffer.cmdSynchronizeFromHost(cmdBuf);
+
+            this.trianglePipeline.cmdDraw(cmdBuf, null, this.framebuffer.getHandle().get(), memByteBuffer(pushConst), 0);
             this.trianglePipeline.cmdDraw(cmdBuf, GlVulkanSharedBuffer.multiDraw, this.framebuffer.getHandle().get(), memByteBuffer(pushConst), 0);
 
             return VK_SUCCESS;
