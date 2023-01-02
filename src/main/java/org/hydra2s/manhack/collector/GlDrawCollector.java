@@ -16,6 +16,7 @@ import org.hydra2s.manhack.ducks.vertex.VertexBufferInterface;
 import org.hydra2s.manhack.ducks.vertex.VertexFormatInterface;
 import org.hydra2s.manhack.shared.vulkan.GlVulkanSharedBuffer;
 import org.hydra2s.manhack.shared.vulkan.GlVulkanSharedTexture;
+import org.hydra2s.manhack.virtual.buffer.GlBaseVirtualBuffer;
 import org.hydra2s.manhack.virtual.buffer.GlVulkanVirtualBuffer;
 import org.hydra2s.noire.descriptors.AccelerationStructureCInfo;
 import org.hydra2s.noire.descriptors.DataCInfo;
@@ -140,8 +141,14 @@ public class GlDrawCollector {
         // isn't valid! must be drawn in another layer, and directly.
         if (mode != GL_TRIANGLES) { return; }
 
+        //
+        if (count > GlVulkanSharedBuffer.averageVertexCount*3) {
+            System.out.println("WARNING! Potential Vertex Count Overflow...");
+            return;
+        }
+
         // TODO: uint8 index type may to be broken or corrupted...
-        //if (type == GL_UNSIGNED_BYTE || type == GL_BYTE) { return; }
+        if (type == GL_UNSIGNED_BYTE || type == GL_BYTE) { return; }
 
         //
         if (drawCount >= GlVulkanSharedBuffer.maxDrawCalls) {
@@ -159,13 +166,18 @@ public class GlDrawCollector {
         var boundShaderProgram = GlContext.boundShaderProgram; // only for download a uniform data
 
         //
+        if (boundVertexBuffer == null) { System.out.println("Vertex Buffer Was Not Bound..."); return; };
+        if (boundVertexFormat == null) { System.out.println("Vertex Format Was Not Bound..."); return; };
+        if (boundShaderProgram == null) { System.out.println("Shader Program Was Not Bound..."); return; };
+
+        //
         var boundVertexBufferI = (VertexBufferInterface)boundVertexBuffer;
         var boundVertexFormatI = (VertexFormatInterface)boundVertexFormat;
         var boundShaderProgramI = (ShaderProgramInterface)boundShaderProgram; // only for download a uniform data
 
         // TODO: direct and zero-copy host memory support
         var virtualVertexBuffer = GlContext.virtualBufferMap.get(boundVertexBufferI.getVertexBufferId());
-        var virtualIndexBuffer = GlContext.virtualBufferMap.get(boundVertexBufferI.getIndexBufferId());
+        var virtualIndexBuffer = GlContext.boundBuffers.get(GL_ELEMENT_ARRAY_BUFFER);
 
         //
         var drawCallData = new DrawCallObj();
@@ -177,14 +189,18 @@ public class GlDrawCollector {
         drawCallData.uniformOffset = GlVulkanSharedBuffer.uniformStride * drawCount;
 
         // TODO: allocation limiter support
-        drawCallData.vertexBuffer.data(GL_ARRAY_BUFFER, virtualVertexBuffer.realSize, GL_DYNAMIC_DRAW);
-        drawCallData.indexBuffer.data(GL_ELEMENT_ARRAY_BUFFER, virtualIndexBuffer.realSize, GL_DYNAMIC_DRAW);
-        drawCallData.primitiveCount = count/3;
+        drawCallData.vertexBuffer.allocate(virtualVertexBuffer.realSize, GL_DYNAMIC_DRAW).data(GL_ARRAY_BUFFER, virtualVertexBuffer.realSize, GL_DYNAMIC_DRAW);
+        drawCallData.indexBuffer.allocate(virtualIndexBuffer.realSize, GL_DYNAMIC_DRAW).data(GL_ELEMENT_ARRAY_BUFFER, virtualIndexBuffer.realSize, GL_DYNAMIC_DRAW);
 
         //
-        if (type == GL_UNSIGNED_BYTE  || type == GL_BYTE ) { drawCallData.indexBuffer.indexType = VK_INDEX_TYPE_UINT8_EXT; }
-        if (type == GL_UNSIGNED_SHORT || type == GL_SHORT) { drawCallData.indexBuffer.indexType = VK_INDEX_TYPE_UINT16; }
-        if (type == GL_UNSIGNED_INT   || type == GL_INT  ) { drawCallData.indexBuffer.indexType = VK_INDEX_TYPE_UINT32; }
+        drawCallData.primitiveCount = count/3;
+        drawCallData.vertexBuffer.stride = virtualVertexBuffer.stride;
+        drawCallData.indexBuffer.stride = virtualIndexBuffer.stride;
+
+        //
+        if (type == GL_UNSIGNED_BYTE  || type == GL_BYTE ) { drawCallData.indexBuffer.indexType = VK_INDEX_TYPE_UINT8_EXT; drawCallData.indexBuffer.stride = 1; }
+        if (type == GL_UNSIGNED_SHORT || type == GL_SHORT) { drawCallData.indexBuffer.indexType = VK_INDEX_TYPE_UINT16; drawCallData.indexBuffer.stride = 2; }
+        if (type == GL_UNSIGNED_INT   || type == GL_INT  ) { drawCallData.indexBuffer.indexType = VK_INDEX_TYPE_UINT32; drawCallData.indexBuffer.stride = 4; }
 
         // TODO: fill uniform data
         var uniformData = GlVulkanSharedBuffer.uniformDataBufferHost.map(GL_UNIFORM_BUFFER, GL_MAP_WRITE_BIT);
@@ -295,13 +311,19 @@ public class GlDrawCollector {
 
         // probka
         var fTransform = memAllocFloat(12);
+        //var fTransform = memAllocFloat(16); // may corrupt instance data
         var gTransform = new Matrix4f();
         gTransform.translate(new Vector3f((float) (-playerCamera.getPos().x), (float) (-playerCamera.getPos().y), (float) (-playerCamera.getPos().z)));
-        gTransform.transpose().get(fTransform);
+        gTransform.transpose().get3x4(fTransform);
 
         //
         GlVulkanSharedBuffer.instanceInfo.transform(VkTransformMatrixKHR.calloc().matrix(fTransform));
         GlVulkanSharedBuffer.drawRanges = VkAccelerationStructureBuildRangeInfoKHR.calloc(collectedDraws.size());
+
+        //
+        //System.out.println("DEBUG! Draw Call Count: " + collectedDraws.size());
+
+        //
         for (int I=0;I<collectedDraws.size();I++) {
 
             //
@@ -327,6 +349,8 @@ public class GlDrawCollector {
                 }};
             }});
         }
+
+
 
         //
         GlVulkanSharedBuffer.bottomLvl.recallGeometryInfo();

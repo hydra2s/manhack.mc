@@ -66,7 +66,6 @@ public interface GlBaseVirtualBuffer {
         public void delete() throws Exception {
             this.assert_();
             GlContext.virtualBufferMap.removeMem(this.deallocate());
-            System.out.println("Deleted Virtual Buffer! Id: " + this.glVirtualBuffer);
             this.glVirtualBuffer = -1;
             this.glStorageBuffer = -1;
             this.realSize = 0;
@@ -133,7 +132,7 @@ public interface GlBaseVirtualBuffer {
             this.glVirtualBuffer = GlContext.virtualBufferMap.arrayMap.push(this);
             this.glStorageBuffer = -1;
             this.allocatedMemory = null;
-            System.out.println("Generated New Virtual Buffer! Id: " + this.glVirtualBuffer);
+            //System.out.println("Generated New Virtual Buffer! Id: " + this.glVirtualBuffer);
         }
 
         public VirtualBufferObj data(int target, ByteBuffer data, int usage) throws Exception {

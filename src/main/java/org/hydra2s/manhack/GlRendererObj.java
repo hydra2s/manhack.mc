@@ -257,6 +257,7 @@ public class GlRendererObj extends BasicObj {
         // Wait a Vulkan, signal to OpenGL
         swapchain.present(_queue, memLongBuffer(memAddress(swapchain.semaphoreRenderingAvailable.getHandle().ptr(), 0), 1));
         glWaitSemaphoreEXT(glWaitSemaphore, memAllocInt(0), memAllocInt(0), memAllocInt(0));
+        //System.out.println("GL semaphore is probably broken...");
 
         // TODO: available only when fully replace to Vulkan API...
         /*return (this.processor = new Generator<Integer>() {
@@ -275,8 +276,10 @@ public class GlRendererObj extends BasicObj {
             pushConst.put(0, swapchain.getImageView(I).DSC_ID);
             pushConst.put(1, framebuffer.writingImageViews.get(0).DSC_ID);
 
-
-            memLongBuffer(memAddress(pushConst, 2), 1).put(0, GlVulkanSharedBuffer.topLvl.getDeviceAddress());
+            //
+            if (GlVulkanSharedBuffer.topLvl != null) {
+                memLongBuffer(memAddress(pushConst, 2), 1).put(0, GlVulkanSharedBuffer.topLvl.getDeviceAddress());
+            }
 
             int finalI = I;
             this.logicalDevice.writeCommand(cmdBuf, (_cmdBuf_)->{

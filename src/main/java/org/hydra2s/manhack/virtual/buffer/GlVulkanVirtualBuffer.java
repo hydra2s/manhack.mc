@@ -32,6 +32,9 @@ public class GlVulkanVirtualBuffer implements GlBaseVirtualBuffer {
             if ((this.mapped = GlVulkanSharedBuffer.sharedBufferMap.get(0)) != null) {
                 this.glStorageBuffer = this.mapped.glStorageBuffer;
             }
+
+            //
+            System.out.println("Generated New Virtual Buffer! Id: " + this.glVirtualBuffer);
         }
 
         public VirtualBufferObj(int typed) {

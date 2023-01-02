@@ -7,6 +7,7 @@ import net.minecraft.client.render.LightmapTextureManager;
 import net.minecraft.client.render.WorldRenderer;
 import net.minecraft.client.util.math.MatrixStack;
 import org.hydra2s.manhack.GlContext;
+import org.hydra2s.manhack.collector.GlDrawCollector;
 import org.joml.Matrix4f;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -21,20 +22,19 @@ public class WorldRendererMixin {
     @Inject(method="render", at=@At("HEAD"))
     public void onRenderBegin(MatrixStack matrices, float tickDelta, long limitTime, boolean renderBlockOutline, Camera camera, GameRenderer gameRenderer, LightmapTextureManager lightmapTextureManager, Matrix4f positionMatrix, CallbackInfo ci) {
         GlContext.worldRendering = true;
-        //GlDrawCollector.resetDraw();
+        GlDrawCollector.resetDraw();
     }
 
     //
     @Inject(method="render", at=@At("RETURN"))
     public void onRenderEnd(MatrixStack matrices, float tickDelta, long limitTime, boolean renderBlockOutline, Camera camera, GameRenderer gameRenderer, LightmapTextureManager lightmapTextureManager, Matrix4f positionMatrix, CallbackInfo ci) {
-        GlContext.worldRendering = false;
 
         // Test rendering!
         // TODO: OpenGL isn't "know" about your/our virtual swap-chain
         // TODO: pardon, but needs OpenGL shader for draw such image, or fully replace to Vulkan API
         // Plan was partially failed...
-        //GlContext.rendererObj.tickRendering();
-
+        GlContext.worldRendering = false;
+        GlContext.rendererObj.tickRendering();
     }
 
 }

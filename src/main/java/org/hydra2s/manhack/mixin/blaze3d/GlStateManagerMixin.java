@@ -5,6 +5,7 @@ import com.mojang.blaze3d.platform.GlConst;
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import org.hydra2s.manhack.GlContext;
+import org.hydra2s.manhack.collector.GlDrawCollector;
 import org.hydra2s.manhack.shared.vulkan.GlVulkanSharedTexture;
 import org.hydra2s.manhack.virtual.buffer.GlBaseVirtualBuffer;
 import org.hydra2s.manhack.virtual.buffer.GlDirectVirtualBuffer;
@@ -101,6 +102,9 @@ public class GlStateManagerMixin {
         GL45.glMemoryBarrier(GL_ELEMENT_ARRAY_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT | GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
         GL11.glDrawElements(mode, count, type, indices + iVBO.offset.get(0));
         vVBO.postDraw(); iVBO.postDraw();
+
+        // may to be progar! may to be allocation overflow! may to be draw call stack exceeded! may to be BSOD!
+        GlDrawCollector.collectDraw(mode, count, type, indices);
     }
 
 
