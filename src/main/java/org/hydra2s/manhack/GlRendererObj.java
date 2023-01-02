@@ -257,7 +257,12 @@ public class GlRendererObj extends BasicObj {
         GlDrawCollector.buildDraw();
 
         // Wait a OpenGL signal to Vulkan...
-        glSignalSemaphoreEXT(glSignalSemaphore, memAllocInt(0), memAllocInt(0), memAllocInt(0));
+        glSignalSemaphoreEXT(glSignalSemaphore, memAllocInt(4)
+                .put(0, GlVulkanSharedBuffer.sharedBufferMap.get(0).glStorageBuffer)
+                .put(1, GlVulkanSharedBuffer.sharedBufferMap.get(1).glStorageBuffer)
+                .put(2, GlVulkanSharedBuffer.sharedBufferMap.get(2).glStorageBuffer)
+                .put(3, GlVulkanSharedBuffer.sharedBufferMap.get(3).glStorageBuffer),
+                memAllocInt(0), memAllocInt(0));
         var imageIndex = swapchain.acquireImageIndex(swapchain.semaphoreImageAvailable.getHandle().get());
         var promise = promises.get(imageIndex);
 
@@ -266,7 +271,7 @@ public class GlRendererObj extends BasicObj {
             if (promise.state().equals(Future.State.RUNNING)) {
                 //this.yield(VK_NOT_READY);
             }
-        } while(!promise.state().equals(Future.State.RUNNING));
+        } while(promise.state().equals(Future.State.RUNNING));
 
         //
         var _queue = logicalDevice.getQueue(0, 0);
@@ -307,44 +312,50 @@ public class GlRendererObj extends BasicObj {
         _pipelineLayout.uniformDescriptorBuffer.unmap();
 
         //
-        this.submitOnce((cmdBuf)->{
+        var promised = new Promise<Integer>();
+        this.logicalDevice.submitOnce(logicalDevice.getCommandPool(0), new BasicCInfo.SubmitCmd(){{
+            queue = logicalDevice.getQueue(0, 0);
+            signalSemaphores = memLongBuffer(memAddress(swapchain.semaphoreRenderingAvailable.getHandle().ptr(), 0), 1);
+            waitSemaphores = memLongBuffer(memAddress(swapchain.semaphoreImageAvailable.getHandle().ptr(), 0), 1);
+            onDone = promised;
+        }}, (cmdBuf)->{
             //
             GlVulkanSharedBuffer.sharedBufferMap.get(1).obj.cmdSynchronizeFromHost(cmdBuf);
             GlVulkanSharedBuffer.sharedBufferMap.get(3).obj.cmdSynchronizeFromHost(cmdBuf);
+            _pipelineLayout.uniformDescriptorBuffer.cmdSynchronizeFromHost(cmdBuf);
 
             //
             GlVulkanSharedBuffer.bottomLvl.cmdBuild(cmdBuf, GlVulkanSharedBuffer.drawRanges, VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR);
             GlVulkanSharedBuffer.instanceBuffer.cmdSynchronizeFromHost(cmdBuf);
             GlVulkanSharedBuffer.topLvl.cmdBuild(cmdBuf, VkAccelerationStructureBuildRangeInfoKHR.calloc(1)
-                        .primitiveCount(1)
-                        .firstVertex(0)
-                        .primitiveOffset(0)
-                        .transformOffset(0),
-                VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR);
+                            .primitiveCount(1)
+                            .firstVertex(0)
+                            .primitiveOffset(0)
+                            .transformOffset(0),
+                    VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR);
 
-            _pipelineLayout.uniformDescriptorBuffer.cmdSynchronizeFromHost(cmdBuf);
-
+            //
             this.trianglePipeline.cmdDraw(cmdBuf, null, this.framebuffer.getHandle().get(), memByteBuffer(pushConst), 0);
             this.trianglePipeline.cmdDraw(cmdBuf, GlVulkanSharedBuffer.multiDraw, this.framebuffer.getHandle().get(), memByteBuffer(pushConst), 0);
+            this.finalComp.cmdDispatch(cmdBuf, VkExtent3D.calloc().width(1280/32).height(720/6).depth(1), memByteBuffer(pushConst), 0);
 
+            //
             return VK_SUCCESS;
         });
 
-        // TODO: dynamic commanding
-        logicalDevice.submitCommand(new BasicCInfo.SubmitCmd(){{
-            queue = _queue;
-            cmdBuf = commandBuffers.get(imageIndex);
-            onDone = promises.get(imageIndex);
-        }});
-
         //
-        promises.set(imageIndex, new Promise<>());
+        promises.set(imageIndex, promised);
 
         // TODO: use in glContext
         // TODO: bind with swapchain images
         // Wait a Vulkan, signal to OpenGL
-        swapchain.present(_queue, memLongBuffer(memAddress(swapchain.semaphoreRenderingAvailable.getHandle().ptr(), 0), 1));
-        glWaitSemaphoreEXT(glWaitSemaphore, memAllocInt(0), memAllocInt(0), memAllocInt(0));
+        //swapchain.present(_queue, memLongBuffer(memAddress(swapchain.semaphoreRenderingAvailable.getHandle().ptr(), 0), 1));
+        glWaitSemaphoreEXT(glWaitSemaphore, memAllocInt(4)
+                .put(0, GlVulkanSharedBuffer.sharedBufferMap.get(0).glStorageBuffer)
+                .put(1, GlVulkanSharedBuffer.sharedBufferMap.get(1).glStorageBuffer)
+                .put(2, GlVulkanSharedBuffer.sharedBufferMap.get(2).glStorageBuffer)
+                .put(3, GlVulkanSharedBuffer.sharedBufferMap.get(3).glStorageBuffer),
+                memAllocInt(0), memAllocInt(0));
 
         // TODO: may failed...
         glShowProgram.bind();
@@ -354,8 +365,7 @@ public class GlRendererObj extends BasicObj {
         GL45.glDisable(GL45.GL_CULL_FACE);
         GL45.glDrawArrays(GL11.GL_TRIANGLES, 0, 6);
 
-        //
-        GlDrawCollector.resetDraw();
+
 
         //System.out.println("GL semaphore is probably broken...");
 
@@ -377,23 +387,8 @@ public class GlRendererObj extends BasicObj {
         for (var I=0;I<this.swapchain.getImageCount();I++) {
             var cmdBuf = this.logicalDevice.allocateCommand(this.logicalDevice.getCommandPool(0));
             var pushConst = memAllocInt(4);
-
-            //
             pushConst.put(0, swapchain.getImageView(I).DSC_ID);
             pushConst.put(1, framebuffer.writingImageViews.get(0).DSC_ID);
-
-            //
-            int finalI = I;
-            this.logicalDevice.writeCommand(cmdBuf, (_cmdBuf_)->{
-                _pipelineLayout.uniformDescriptorBuffer.cmdSynchronizeFromHost(cmdBuf);
-                this.finalComp.cmdDispatch(cmdBuf, VkExtent3D.calloc().width(1280/32).height(720/6).depth(1), memByteBuffer(pushConst), 0);
-
-                // FOR TEST ONLY!
-                //vkCmdClearColorImage(cmdBuf, this.swapchain.getImage(finalI), VK_IMAGE_LAYOUT_GENERAL, VkClearColorValue.calloc().float32(memAllocFloat(4).put(0, 1.F).put(1, 0.F).put(2, 0.F).put(3, 0.F)), VkImageSubresourceRange.calloc().aspectMask(VK_IMAGE_ASPECT_COLOR_BIT).layerCount(1).levelCount(1));
-                return VK_SUCCESS;
-            });
-
-            this.commandBuffers.add(cmdBuf);
         }
 
         return this;
@@ -438,6 +433,7 @@ public class GlRendererObj extends BasicObj {
         for (var I=0;I<fences.remaining();I++) {
             vkCreateFence(logicalDevice.device, VkFenceCreateInfo.calloc().sType(VK_STRUCTURE_TYPE_FENCE_CREATE_INFO).flags(VK_FENCE_CREATE_SIGNALED_BIT), null, fences.slice(I, 1));
             this.promises.add(new Promise<Integer>());
+            this.promises.get(I).fulfill(VK_SUCCESS);
 
             //
             int glMemory = 0;

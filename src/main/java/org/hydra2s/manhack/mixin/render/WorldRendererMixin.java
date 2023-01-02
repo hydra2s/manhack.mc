@@ -32,7 +32,7 @@ public class WorldRendererMixin {
         GlContext.rendererObj.camera = camera;
         camera.getRotation().get(GlContext.rendererObj.viewMatrix);
         GlContext.rendererObj.viewMatrix = GlContext.rendererObj.viewMatrix.transpose();
-        //GlDrawCollector.resetDraw();
+        GlDrawCollector.resetDraw();
     }
 
     //
@@ -43,8 +43,8 @@ public class WorldRendererMixin {
         // TODO: OpenGL isn't "know" about your/our virtual swap-chain
         // TODO: pardon, but needs OpenGL shader for draw such image, or fully replace to Vulkan API
         // Plan was partially failed...
-        GlContext.worldRendering = false;
         GlContext.rendererObj.tickRendering();
+        GlContext.worldRendering = false;
     }
 
 }

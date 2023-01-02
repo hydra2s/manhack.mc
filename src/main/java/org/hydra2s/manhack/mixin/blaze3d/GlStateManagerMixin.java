@@ -118,9 +118,8 @@ public class GlStateManagerMixin {
     @Overwrite(remap = false)
     public static int _glGenBuffers() throws Exception {
         RenderSystem.assertOnRenderThreadOrInit();
-        if (GlContext.worldRendering) {
-            //return GlHostVirtualBuffer.createVirtualBuffer();
-            return GlVulkanVirtualBuffer.createVirtualBuffer(); // currently, most stable for GL rendering
+        if (GlContext.worldRendering) { // OpenGL is desyncrhonized from Vulkan API
+            return GlVulkanVirtualBuffer.createVirtualBuffer();
         }
         return GlDirectVirtualBuffer.createVirtualBuffer();
     }
