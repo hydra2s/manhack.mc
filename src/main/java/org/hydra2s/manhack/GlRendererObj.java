@@ -226,23 +226,11 @@ public class GlRendererObj extends BasicObj {
 
         //
         var _queue = logicalDevice.getQueue(0, 0);
-
-        // TODO: use in glContext
-        // TODO: bind with swapchain images
-
+        
         //
         GlDrawCollector.buildDraw();
-
-        //
         this.submitOnce((cmdBuf)->{
-            GlVulkanSharedBuffer.bottomLvl.cmdBuild(cmdBuf, VkAccelerationStructureBuildRangeInfoKHR.calloc(1)
-                        .primitiveCount(1)
-                        .firstVertex(0)
-                        .primitiveOffset(0)
-                        .transformOffset(0),
-                VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR);
-
-            //
+            GlVulkanSharedBuffer.bottomLvl.cmdBuild(cmdBuf, GlVulkanSharedBuffer.drawRanges, VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR);
             GlVulkanSharedBuffer.instanceBuffer.cmdSynchronizeFromHost(cmdBuf);
             GlVulkanSharedBuffer.topLvl.cmdBuild(cmdBuf, VkAccelerationStructureBuildRangeInfoKHR.calloc(1)
                         .primitiveCount(1)

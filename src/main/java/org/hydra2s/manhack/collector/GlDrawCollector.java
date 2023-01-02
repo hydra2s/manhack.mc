@@ -131,13 +131,19 @@ public class GlDrawCollector {
     // collect draw calls for batch draw and acceleration structure
     public static void collectDraw(int mode, int count, int type, long indices) throws Exception {
         // don't record GUI, or other trash
-        if (!GlContext.worldRendering) { return; };
+        if (!GlContext.worldRendering) { return; }
 
         // isn't valid! must be drawn in another layer, and directly.
-        if (mode != GL_TRIANGLES) { return; };
+        if (mode != GL_TRIANGLES) { return; }
 
         // TODO: uint8 index type may to be broken or corrupted...
-        //if (type == GL_UNSIGNED_BYTE || type == GL_BYTE) { return; };
+        //if (type == GL_UNSIGNED_BYTE || type == GL_BYTE) { return; }
+
+        //
+        if (drawCount >= GlVulkanSharedBuffer.maxDrawCalls) {
+            System.out.println("WARNING! Draw Call Limit Exceeded...");
+            return;
+        }
 
         //
         var boundVertexBuffer = GlContext.boundVertexBuffer;
@@ -168,9 +174,9 @@ public class GlDrawCollector {
         drawCallData.primitiveCount = count/3;
 
         //
-        if (type == GL_UNSIGNED_BYTE  || type == GL_BYTE ) { drawCallData.indexBuffer.indexType = VK_INDEX_TYPE_UINT8_EXT; };
-        if (type == GL_UNSIGNED_SHORT || type == GL_SHORT) { drawCallData.indexBuffer.indexType = VK_INDEX_TYPE_UINT16; };
-        if (type == GL_UNSIGNED_INT   || type == GL_INT  ) { drawCallData.indexBuffer.indexType = VK_INDEX_TYPE_UINT32; };
+        if (type == GL_UNSIGNED_BYTE  || type == GL_BYTE ) { drawCallData.indexBuffer.indexType = VK_INDEX_TYPE_UINT8_EXT; }
+        if (type == GL_UNSIGNED_SHORT || type == GL_SHORT) { drawCallData.indexBuffer.indexType = VK_INDEX_TYPE_UINT16; }
+        if (type == GL_UNSIGNED_INT   || type == GL_INT  ) { drawCallData.indexBuffer.indexType = VK_INDEX_TYPE_UINT32; }
 
         // TODO: fill uniform data
         var uniformData = GlVulkanSharedBuffer.uniformDataBufferHost.map(GL_UNIFORM_BUFFER, GL_MAP_WRITE_BIT);
@@ -221,7 +227,7 @@ public class GlDrawCollector {
         // needs for acceleration structure
         var transform = new Matrix4f();
         //transform.translate(new Vector3f((float) (chunkOffset.get(0) - playerCamera.getPos().x), (float) (chunkOffset.get(1) - playerCamera.getPos().y), (float) (chunkOffset.get(2) - playerCamera.getPos().z)));
-        transform.translate(new Vector3f((float) (chunkOffset.get(0)), (float) (chunkOffset.get(1)), (float) (chunkOffset.get(2))));
+        transform.translate(new Vector3f(chunkOffset.get(0), chunkOffset.get(1), chunkOffset.get(2)));
         transform.transpose().get(uniformData);
 
         //
@@ -307,6 +313,9 @@ public class GlDrawCollector {
                 }};
             }});
         }
+
+        //
+        GlVulkanSharedBuffer.bottomLvl.recallGeometryInfo();
     }
 
     // probably, prepare buffers and commands (indirect draw)

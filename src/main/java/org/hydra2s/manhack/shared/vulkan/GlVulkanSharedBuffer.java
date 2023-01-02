@@ -56,8 +56,8 @@ public class GlVulkanSharedBuffer implements GlBaseSharedBuffer {
 
         //
         sharedBufferMap = new HashMap<Integer, VkSharedBuffer>(){{
-            put(0, createBuffer(1024L * 1024L * 1024L * 3L, true));  // for GL shared memory!!!
-            put(1, createBuffer(1024L * 1024L * 1024L, false)); // for temp memory
+            put(0, createBuffer(1024L * 1024L * maxDrawCalls * 3L, true));  // for GL shared memory!!!
+            put(1, createBuffer(1024L * 1024L * maxDrawCalls * 3L, false)); // for temp memory
             put(2, createBuffer(uniformStride * maxDrawCalls, false));
         }};
 
