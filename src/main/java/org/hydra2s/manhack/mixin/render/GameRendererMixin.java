@@ -9,7 +9,9 @@ import net.minecraft.client.render.WorldRenderer;
 import net.minecraft.client.util.math.MatrixStack;
 import org.hydra2s.manhack.GlContext;
 import org.hydra2s.manhack.collector.GlDrawCollector;
+import org.hydra2s.manhack.shared.vulkan.GlVulkanSharedBuffer;
 import org.joml.Matrix4f;
+import org.lwjgl.opengl.GL45;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -17,6 +19,11 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
+import static org.lwjgl.opengl.GL11.GL_TRIANGLES;
+import static org.lwjgl.opengl.GL30.*;
+import static org.lwjgl.opengl.GL30C.glBindBufferRange;
+import static org.lwjgl.opengl.GL40.*;
 
 //
 @Mixin(GameRenderer.class)
@@ -34,12 +41,22 @@ public class GameRendererMixin {
         GlContext.rendererObj.camera = camera;
         camera.getRotation().get(GlContext.rendererObj.viewMatrix);
         GlContext.rendererObj.viewMatrix = GlContext.rendererObj.viewMatrix.transpose();
-        GlDrawCollector.resetDraw();
+        //GlDrawCollector.resetDraw();
 
         //
         GlContext.worldRendering = true;
+        //glBindTransformFeedback(GL_TRANSFORM_FEEDBACK, GlContext.glTransformFeedback);
+        //glBindBufferRange(GL_TRANSFORM_FEEDBACK_BUFFER, 0, GlVulkanSharedBuffer.vertexDataBuffer.glStorageBuffer, GlVulkanSharedBuffer.vertexDataBuffer.offset.get(0), GlVulkanSharedBuffer.vertexDataBuffer.realSize);
+        //glEnable(GL_RASTERIZER_DISCARD);
+        //glBeginTransformFeedback(GL_TRIANGLES);
+        //glPauseTransformFeedback();
+
         this.client.worldRenderer.render(matrices, tickDelta, limitTime, renderBlockOutline, camera, gameRenderer, lightmapTextureManager, positionMatrix);
+
+        //glEndTransformFeedback();
+        //glDisable(GL_RASTERIZER_DISCARD);
+
         GlContext.worldRendering = false;
-        GlContext.rendererObj.tickRendering();
+        //GlContext.rendererObj.tickRendering();
     }
 }

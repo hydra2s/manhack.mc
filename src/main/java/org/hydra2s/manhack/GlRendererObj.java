@@ -67,6 +67,7 @@ public class GlRendererObj extends BasicObj {
     public PipelineObj.ComputePipelineObj finalComp;
     public PipelineObj.GraphicsPipelineObj trianglePipeline;
     public ShaderProgram glShowProgram;
+    public ShaderProgram glTransformProgram;
 
     public ImageSetCInfo.FBLayout fbLayout;
     public ImageSetObj.FramebufferObj framebuffer;
@@ -218,6 +219,13 @@ public class GlRendererObj extends BasicObj {
         this.glShowProgram.createFragmentShader(new String(Files.readAllBytes(Path.of(FabricLoader.getInstance().getGameDir().toString(), "./shaders/show.frag")), StandardCharsets.UTF_8));
         this.glShowProgram.link();
 
+        //
+        this.glTransformProgram = new ShaderProgram();
+        this.glTransformProgram.createVertexShader(new String(Files.readAllBytes(Path.of(FabricLoader.getInstance().getGameDir().toString(), "./shaders/transform.vert")), StandardCharsets.UTF_8));
+        this.glTransformProgram.createFragmentShader(new String(Files.readAllBytes(Path.of(FabricLoader.getInstance().getGameDir().toString(), "./shaders/transform.frag")), StandardCharsets.UTF_8));
+        this.glTransformProgram.link();
+
+        //
         return this;
     }
 

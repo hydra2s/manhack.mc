@@ -28,9 +28,6 @@ void main() {
 		// TODO: correct draw call stride
 		DrawCall drawCall = DrawCall(geomData + gl_DrawID*768);
 		if (drawCall.vertexBinding.address > 0 && drawCall.indexAddress > 0) {
-			if (drawCall.indexType == 1         ) { index = Uint32(drawCall.indexAddress + gl_VertexIndex*drawCall.indexStride).index; };
-			if (drawCall.indexType == 0         ) { index = Uint16(drawCall.indexAddress + gl_VertexIndex*drawCall.indexStride).index; };
-			if (drawCall.indexType == 1000265000) { index = Uint8 (drawCall.indexAddress + gl_VertexIndex*drawCall.indexStride).index; };
 			vec4 vPosition = vec4(Vec3(drawCall.vertexBinding.address + drawCall.vertexBinding.stride * index).vertex, 1.f);
 
 			//

@@ -17,10 +17,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.lwjgl.opengl.GL40.glGenTransformFeedbacks;
+import static org.lwjgl.opengl.GL45.glCreateTransformFeedbacks;
+
 // TODO: unify with GlRendererObj
 public class GlContext {
     public static boolean worldRendering = false;
     public static GlRendererObj rendererObj;
+    public static int glTransformFeedback = 0;
 
     //
     public static HashMap<Integer, GlBaseVirtualBuffer.VirtualBufferObj> boundWithVao = new HashMap<Integer, GlBaseVirtualBuffer.VirtualBufferObj>();
@@ -41,6 +45,9 @@ public class GlContext {
         rendererObj = new GlRendererObj(null, new RendererCInfo(){
 
         });
+
+        //
+        glTransformFeedback = glCreateTransformFeedbacks();
 
         //
         GlVulkanSharedBuffer.initialize(); // most stable!
