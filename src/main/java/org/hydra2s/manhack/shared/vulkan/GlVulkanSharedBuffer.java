@@ -25,10 +25,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 //
-import static org.lwjgl.opengl.EXTMemoryObject.glCreateMemoryObjectsEXT;
-import static org.lwjgl.opengl.EXTMemoryObject.glNamedBufferStorageMemEXT;
+import static org.lwjgl.opengl.EXTMemoryObject.*;
 import static org.lwjgl.opengl.EXTMemoryObjectWin32.GL_HANDLE_TYPE_OPAQUE_WIN32_EXT;
 import static org.lwjgl.opengl.EXTMemoryObjectWin32.glImportMemoryWin32HandleEXT;
+import static org.lwjgl.opengl.GL11.GL_TRUE;
 import static org.lwjgl.opengl.GL15.GL_DYNAMIC_DRAW;
 import static org.lwjgl.opengl.GL31.GL_UNIFORM_BUFFER;
 import static org.lwjgl.system.MemoryUtil.*;
@@ -150,6 +150,10 @@ public class GlVulkanSharedBuffer implements GlBaseSharedBuffer {
 
         // also, is this full size
         public VmaVirtualBlockCreateInfo vbInfo = VmaVirtualBlockCreateInfo.calloc().flags(VMA_VIRTUAL_ALLOCATION_CREATE_STRATEGY_MIN_OFFSET_BIT | VMA_VIRTUAL_ALLOCATION_CREATE_STRATEGY_MIN_TIME_BIT | VMA_VIRTUAL_ALLOCATION_CREATE_STRATEGY_MIN_MEMORY_BIT);
+
+        public VkSharedBuffer() {
+
+        }
     };
 
     // TODO: support for typed (entity, indexed, blocks, etc.)
@@ -177,6 +181,7 @@ public class GlVulkanSharedBuffer implements GlBaseSharedBuffer {
         vmaCreateVirtualBlock(sharedBuffer.vbInfo.size(sharedBuffer.bufferCreateInfo.size), sharedBuffer.vb = memAllocPointer(1));
         if (sharedBuffer.glMemory == 0) {
             glImportMemoryWin32HandleEXT(sharedBuffer.glMemory = glCreateMemoryObjectsEXT(), sharedBuffer.obj.memoryRequirements2.memoryRequirements().size(), GL_HANDLE_TYPE_OPAQUE_WIN32_EXT, sharedBuffer.obj.getWin32Handle().get(0));
+            //glMemoryObjectParameteriEXT(sharedBuffer.glMemory, GL_DEDICATED_MEMORY_OBJECT_EXT, GL_TRUE);
         }
 
         //

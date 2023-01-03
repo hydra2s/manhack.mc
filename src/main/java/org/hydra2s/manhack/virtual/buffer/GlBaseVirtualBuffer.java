@@ -107,9 +107,9 @@ public interface GlBaseVirtualBuffer {
             GlContext.boundBuffers.remove(target);
 
             // TODO: unbound memory
-            if (target == GL_ARRAY_BUFFER) {
-                this.vao = this.vao > 0 ? this.vao : glGetInteger(GL_VERTEX_ARRAY_BINDING);
-            }
+            //if (target == GL_ARRAY_BUFFER) {
+                //this.vao = this.vao > 0 ? this.vao : glGetInteger(GL_VERTEX_ARRAY_BINDING);
+            //}
 
             // TODO: unbound memory
             GlContext.boundBuffers.put(this.target = target, this);

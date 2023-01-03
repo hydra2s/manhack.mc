@@ -94,17 +94,9 @@ public class GlStateManagerMixin {
         // Vulkan API isn't know about memory mapping.
         var iVBO = GlContext.boundBuffers.get(GL_ELEMENT_ARRAY_BUFFER);
 
-        // TODO: support multiple vertex bound buffers
-        var vVBO = GlContext.boundBuffers.get(GL_ARRAY_BUFFER);
-
         //
-        vVBO.preDraw(); iVBO.preDraw();
-        GL45.glMemoryBarrier(GL_ELEMENT_ARRAY_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT | GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
         GL11.glDrawElements(mode, count, type, indices + iVBO.offset.get(0));
         GlDrawCollector.collectDraw(mode, count, type, indices);
-        vVBO.postDraw(); iVBO.postDraw();
-
-
     }
 
 

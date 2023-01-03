@@ -19,8 +19,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 //
-import static org.lwjgl.opengl.EXTMemoryObject.glCreateMemoryObjectsEXT;
-import static org.lwjgl.opengl.EXTMemoryObject.glTexStorageMem2DEXT;
+import static org.lwjgl.opengl.EXTMemoryObject.*;
+import static org.lwjgl.opengl.EXTMemoryObject.GL_DEDICATED_MEMORY_OBJECT_EXT;
 import static org.lwjgl.opengl.EXTMemoryObjectWin32.GL_HANDLE_TYPE_OPAQUE_WIN32_EXT;
 import static org.lwjgl.opengl.EXTMemoryObjectWin32.glImportMemoryWin32HandleEXT;
 import static org.lwjgl.opengl.GL11.*;
@@ -39,6 +39,10 @@ public class GlVulkanSharedTexture implements GlBaseSharedTexture {
         public MemoryAllocationObj.ImageObj obj;
         public MemoryAllocationCInfo.ImageCInfo imageCreateInfo;
         public ImageViewObj imageView;
+
+        public VkSharedImage() {
+
+        }
     };
 
     //
@@ -108,6 +112,7 @@ public class GlVulkanSharedTexture implements GlBaseSharedTexture {
                 glBindTexture(GL_TEXTURE_2D, id);
                 if (sharedImage.glMemory == 0) {
                     glImportMemoryWin32HandleEXT(sharedImage.glMemory = glCreateMemoryObjectsEXT(), sharedImage.obj.memoryRequirements2.memoryRequirements().size(), GL_HANDLE_TYPE_OPAQUE_WIN32_EXT, sharedImage.obj.getWin32Handle().get(0));
+                    //glMemoryObjectParameteriEXT(sharedImage.glMemory, GL_DEDICATED_MEMORY_OBJECT_EXT, GL_TRUE);
                 }
                 glTexStorageMem2DEXT(GL_TEXTURE_2D, maxLevel + 1, glFormat, width, height, sharedImage.glMemory, sharedImage.obj.memoryOffset);
 

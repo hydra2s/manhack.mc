@@ -36,14 +36,14 @@ import static org.lwjgl.opengl.EXTMemoryObjectWin32.glImportMemoryWin32HandleEXT
 import static org.lwjgl.opengl.EXTSemaphore.*;
 import static org.lwjgl.opengl.EXTSemaphoreWin32.GL_HANDLE_TYPE_OPAQUE_WIN32_EXT;
 import static org.lwjgl.opengl.EXTSemaphoreWin32.glImportSemaphoreWin32HandleEXT;
-import static org.lwjgl.opengl.GL11.GL_RGBA8;
-import static org.lwjgl.opengl.GL11.GL_TEXTURE_2D;
+import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL30.GL_RGBA32F;
 import static org.lwjgl.system.MemoryUtil.*;
 import static org.lwjgl.system.MemoryUtil.memSlice;
 import static org.lwjgl.vulkan.KHRAccelerationStructure.VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
 import static org.lwjgl.vulkan.KHRAccelerationStructure.VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
 import static org.lwjgl.vulkan.VK10.*;
+import static org.lwjgl.vulkan.VK13.*;
 
 // the main rendering class!!!
 // TODO: finish up projecting
@@ -319,6 +319,12 @@ public class GlRendererObj extends BasicObj {
             waitSemaphores = memLongBuffer(memAddress(swapchain.semaphoreImageAvailable.getHandle().ptr(), 0), 1);
             onDone = promised;
         }}, (cmdBuf)->{
+            vkCmdPipelineBarrier2(cmdBuf, VkDependencyInfoKHR.calloc().sType(VK_STRUCTURE_TYPE_DEPENDENCY_INFO).pMemoryBarriers(VkMemoryBarrier2.calloc(1).sType(VK_STRUCTURE_TYPE_MEMORY_BARRIER_2)
+                    .srcStageMask(VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT)
+                    .srcAccessMask(VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT)
+                    .dstStageMask(VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT)
+                    .dstAccessMask(VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT)));
+
             //
             GlVulkanSharedBuffer.sharedBufferMap.get(1).obj.cmdSynchronizeFromHost(cmdBuf);
             GlVulkanSharedBuffer.sharedBufferMap.get(3).obj.cmdSynchronizeFromHost(cmdBuf);

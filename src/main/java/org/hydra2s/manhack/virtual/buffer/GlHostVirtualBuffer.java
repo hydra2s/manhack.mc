@@ -89,9 +89,9 @@ public class GlHostVirtualBuffer implements GlBaseVirtualBuffer {
 
             //
             if (this.allocId.get(0) != 0) {
-                if (this.glStorageBuffer > 0) {
-                    glClearNamedBufferSubData(this.glStorageBuffer, GL_R8UI, this.offset.get(0), this.blockSize, GL_RED_INTEGER, GL_UNSIGNED_BYTE, memAlloc(1).put(0, (byte) 0));
-                }
+                //if (this.glStorageBuffer > 0) {
+                    //glClearNamedBufferSubData(this.glStorageBuffer, GL_R8UI, this.offset.get(0), this.blockSize, GL_RED_INTEGER, GL_UNSIGNED_BYTE, memAlloc(1).put(0, (byte) 0));
+                //}
 
                 //
                 this.blockSize = 0L;
@@ -128,9 +128,9 @@ public class GlHostVirtualBuffer implements GlBaseVirtualBuffer {
         public GlBaseVirtualBuffer.VirtualBufferObj data(int target, long size, int usage) throws Exception {
             this.realSize = size;
             if (TO_BE_GL) {
-                if (this.glStorageBuffer > 0) {
-                    glClearNamedBufferSubData(this.glStorageBuffer, GL_R8UI, this.offset.get(0), this.realSize = size, GL_RED_INTEGER, GL_UNSIGNED_BYTE, memAlloc(1).put(0, (byte) 0));
-                }
+                //if (this.glStorageBuffer > 0) {
+                    //glClearNamedBufferSubData(this.glStorageBuffer, GL_R8UI, this.offset.get(0), this.realSize = size, GL_RED_INTEGER, GL_UNSIGNED_BYTE, memAlloc(1).put(0, (byte) 0));
+                //}
             }
             return this.bindVertex();
         }

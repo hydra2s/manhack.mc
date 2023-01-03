@@ -41,7 +41,7 @@ public class GlVulkanVirtualBuffer implements GlBaseVirtualBuffer {
             }
 
             //
-            System.out.println("Generated New Virtual Buffer! Id: " + this.glVirtualBuffer);
+            //System.out.println("Generated New Host Virtual Buffer! Id: " + this.glVirtualBuffer);
         }
 
         public VirtualBufferObj(int typed) {
@@ -51,6 +51,9 @@ public class GlVulkanVirtualBuffer implements GlBaseVirtualBuffer {
             if ((this.mapped = GlVulkanSharedBuffer.sharedBufferMap.get(typed)) != null) {
                 this.glStorageBuffer = this.mapped.glStorageBuffer;
             }
+
+            //
+            //System.out.println("Generated New GPU or Uniform Buffer! Id: " + this.glVirtualBuffer);
         }
 
         @Override
@@ -69,6 +72,10 @@ public class GlVulkanVirtualBuffer implements GlBaseVirtualBuffer {
                 return VK_SUCCESS;
             });*/
 
+            // OpenGL, you are drunk?
+            //glFinish();
+
+            //
             return (this.allocatedMemory = this.mapped.obj.map(this.realSize, offset.get(0)));
         }
 
@@ -96,22 +103,23 @@ public class GlVulkanVirtualBuffer implements GlBaseVirtualBuffer {
         public GlBaseVirtualBuffer.VirtualBufferObj deallocate() throws Exception {
             this.assert_();
             if (this.allocId.get(0) != 0) {
-                if (this.glStorageBuffer > 0) {
-                    glClearNamedBufferSubData(this.glStorageBuffer, GL_R8UI, this.offset.get(0), this.blockSize, GL_RED_INTEGER, GL_UNSIGNED_BYTE, memAlloc(1).put(0, (byte) 0));
-                    glMemoryBarrier(GL_ELEMENT_ARRAY_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT | GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
-                }
+                //if (this.glStorageBuffer > 0) {
+                    //glClearNamedBufferSubData(this.glStorageBuffer, GL_R8UI, this.offset.get(0), this.blockSize, GL_RED_INTEGER, GL_UNSIGNED_BYTE, memAlloc(1).put(0, (byte) 0));
 
-                //
-                this.realSize = 0L;
-                this.blockSize = 0L;
-                this.offset.put(0, 0L);
+                    // OpenGL, you are drunk?
+                    //GL45.glFinish();
+                //}
 
                 //
                 if (this.mapped != null) {
                     vmaVirtualFree(this.mapped.vb.get(0), this.allocId.get(0));
                 }
 
+                //
+                this.realSize = 0L;
+                this.blockSize = 0L;
                 this.address = 0L;
+                this.offset.put(0, 0L);
                 this.allocId.put(0, 0L);
             }
             return this;
@@ -132,7 +140,8 @@ public class GlVulkanVirtualBuffer implements GlBaseVirtualBuffer {
 
                 //
                 var oldAlloc = this.allocId.get(0);
-                int res = vmaVirtualAllocate(this.mapped.vb.get(0), this.allocCreateInfo.size(this.blockSize = defaultSize), this.allocId.put(0, 0L), this.offset.put(0, 0L));
+                this.offset.put(0, 0L);
+                int res = vmaVirtualAllocate(this.mapped.vb.get(0), this.allocCreateInfo.size(this.blockSize = defaultSize), this.allocId.put(0, 0L), this.offset);
                 if (res != VK_SUCCESS) {
                     System.out.println("Allocation Failed: " + res);
                     throw new Exception("Allocation Failed: " + res);
@@ -159,7 +168,9 @@ public class GlVulkanVirtualBuffer implements GlBaseVirtualBuffer {
             this.realSize = data.remaining();
             if (this.glStorageBuffer > 0) {
                 glNamedBufferSubData(this.glStorageBuffer, this.offset.get(0), data);
-                glMemoryBarrier(GL_ELEMENT_ARRAY_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT | GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
+
+                // OpenGL, you are drunk?
+                GL45.glFinish();
             }
             return this.bindVertex();
         }
@@ -169,8 +180,10 @@ public class GlVulkanVirtualBuffer implements GlBaseVirtualBuffer {
         public GlBaseVirtualBuffer.VirtualBufferObj data(int target, long size, int usage) throws Exception {
             this.realSize = size;
             if (this.glStorageBuffer > 0) {
-                glClearNamedBufferSubData(this.glStorageBuffer, GL_R8UI, this.offset.get(0), this.realSize = size, GL_RED_INTEGER, GL_UNSIGNED_BYTE, memAlloc(1).put(0, (byte) 0));
-                glMemoryBarrier(GL_ELEMENT_ARRAY_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT | GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
+                //glClearNamedBufferSubData(this.glStorageBuffer, GL_R8UI, this.offset.get(0), this.realSize = size, GL_RED_INTEGER, GL_UNSIGNED_BYTE, memAlloc(1).put(0, (byte) 0));
+
+                // OpenGL, you are drunk?
+                //GL45.glFinish();
             }
             return this.bindVertex();
         }
@@ -183,7 +196,7 @@ public class GlVulkanVirtualBuffer implements GlBaseVirtualBuffer {
 
     //
     public static int createVirtualBuffer() throws Exception {
-        return (new VirtualBufferObj()).glVirtualBuffer;
+        return (new VirtualBufferObj(0)).glVirtualBuffer;
     }
 
 };

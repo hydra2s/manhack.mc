@@ -152,16 +152,19 @@ public class GlDrawCollector {
 
         // fully nullify that buffer
         // TODO: use Vulkan API for nullification
-        glClearNamedBufferSubData(sharedBuffer.glStorageBuffer, GL_R8UI, 0, sharedBuffer.bufferCreateInfo.size, GL_RED_INTEGER, GL_UNSIGNED_BYTE, memAlloc(1).put(0, (byte) 0));
-        glMemoryBarrier(GL_ELEMENT_ARRAY_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT | GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
-        if (sharedBuffer.vb.get(0) != 0) { vmaClearVirtualBlock(sharedBuffer.vb.get(0)); }
+        //glClearNamedBufferSubData(sharedBuffer.glStorageBuffer, GL_R8UI, 0, sharedBuffer.bufferCreateInfo.size, GL_RED_INTEGER, GL_UNSIGNED_BYTE, memAlloc(1).put(0, (byte) 0));
+        //if (sharedBuffer.vb.get(0) != 0) { vmaClearVirtualBlock(sharedBuffer.vb.get(0)); }
 
         //
         GlVulkanSharedBuffer.uniformDataBufferHost.deallocate().allocate(GlVulkanSharedBuffer.uniformStride * GlVulkanSharedBuffer.maxDrawCalls, GL_DYNAMIC_DRAW).data(GL_UNIFORM_BUFFER, GlVulkanSharedBuffer.uniformStride * GlVulkanSharedBuffer.maxDrawCalls, GL_DYNAMIC_DRAW);
         GlVulkanSharedBuffer.uniformDataBuffer.deallocate().allocate(GlVulkanSharedBuffer.uniformStride * GlVulkanSharedBuffer.maxDrawCalls, GL_DYNAMIC_DRAW).data(GL_UNIFORM_BUFFER, GlVulkanSharedBuffer.uniformStride * GlVulkanSharedBuffer.maxDrawCalls, GL_DYNAMIC_DRAW);
+
+        //
+        glFinish();
     }
 
     // collect draw calls for batch draw and acceleration structure
+    // getting errors when any text rendering
     public static void collectDraw(int mode, int count, int type, long indices) throws Exception {
         // don't record GUI, or other trash
         if (!GlContext.worldRendering) { return; }
@@ -200,7 +203,7 @@ public class GlDrawCollector {
         // TODO: direct and zero-copy host memory support
         // TODO: fix broken boundVertexBuffer support
         var vao = glGetInteger(GL_VERTEX_ARRAY_BINDING);
-        var virtualVertexBuffer = GlContext.boundWithVao.get(vao);//GlContext.virtualBufferMap.get(boundVertexBufferI.getVertexBufferId());
+        var virtualVertexBuffer = GlContext.boundWithVao.get(vao);
         var virtualIndexBuffer = GlContext.boundBuffers.get(GL_ELEMENT_ARRAY_BUFFER);
         //var virtualIndexBuffer = boundVertexBufferI.getIndexBufferId() > 0 ? GlContext.virtualBufferMap.get(boundVertexBufferI.getIndexBufferId()) : GlContext.boundBuffers.get(GL_ELEMENT_ARRAY_BUFFER);
         //if (virtualIndexBuffer.realSize <= 0) { virtualIndexBuffer = GlContext.boundBuffers.get(GL_ELEMENT_ARRAY_BUFFER); };
@@ -221,7 +224,7 @@ public class GlDrawCollector {
         //
         drawCallData.primitiveCount = count/3;
         drawCallData.elementCount = count;
-        drawCallData.vertexBuffer.stride = boundVertexFormat.getVertexSizeByte();
+        drawCallData.vertexBuffer.stride = virtualVertexBuffer.stride;//boundVertexFormat.getVertexSizeByte();
         drawCallData.indexBuffer.indexType = VK_INDEX_TYPE_UINT32;
         drawCallData.indexBuffer.stride = 4;
 
@@ -328,19 +331,26 @@ public class GlDrawCollector {
         //
         GlVulkanSharedBuffer.uniformDataBufferHost.unmap(GL_UNIFORM_BUFFER);
 
-        // TODO: copy using Vulkan API!
-        // TODO: add zero-copy in-HOST support.
-        // BROKEN! Desynchronized from Vulkan API...
-        GL45.glMemoryBarrier(GL_ELEMENT_ARRAY_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT | GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
+        // is OpenGL only...
+        var vOffset = virtualVertexBuffer.offset.get(0);
+        var iOffset = virtualIndexBuffer.offset.get(0);
+
+        // is Vulkan with OpenGL shared!
+        var _vOffset = drawCallData.vertexBuffer.offset.get(0);
+        var _iOffset = drawCallData.indexBuffer.offset.get(0);
+
+        //
         GL45.glCopyNamedBufferSubData(
             virtualVertexBuffer.glStorageBuffer, drawCallData.vertexBuffer.glStorageBuffer,
-            virtualVertexBuffer.offset.get(0),   drawCallData.vertexBuffer.offset.get(0),
+                vOffset, _vOffset,
             virtualVertexBuffer.realSize);
         GL45.glCopyNamedBufferSubData(
             virtualIndexBuffer.glStorageBuffer, drawCallData.indexBuffer.glStorageBuffer,
-            virtualIndexBuffer.offset.get(0),   drawCallData.indexBuffer.offset.get(0),
+                iOffset, _iOffset,
             virtualIndexBuffer.realSize);
-        GL45.glMemoryBarrier(GL_ELEMENT_ARRAY_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT | GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
+
+        // OpenGL, you are drunk?
+        GL45.glFinish();
 
         //
         collectedDraws.add(drawCallData);
@@ -376,12 +386,14 @@ public class GlDrawCollector {
         GlVulkanSharedBuffer.multiDraw = VkMultiDrawInfoEXT.calloc(collectedDraws.size());
 
         //
-        GL45.glMemoryBarrier(GL_ELEMENT_ARRAY_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT | GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
         if (GlVulkanSharedBuffer.uniformDataBufferHost.glStorageBuffer > 0 && GlVulkanSharedBuffer.uniformDataBuffer.glStorageBuffer > 0) {
             GL45.glCopyNamedBufferSubData(
                     GlVulkanSharedBuffer.uniformDataBufferHost.glStorageBuffer, GlVulkanSharedBuffer.uniformDataBuffer.glStorageBuffer,
                     GlVulkanSharedBuffer.uniformDataBufferHost.offset.get(0), GlVulkanSharedBuffer.uniformDataBuffer.offset.get(0),
                     GlVulkanSharedBuffer.uniformStride * collectedDraws.size());
+
+            // OpenGL, you are drunk?
+            GL45.glFinish();
         }
 
         //
