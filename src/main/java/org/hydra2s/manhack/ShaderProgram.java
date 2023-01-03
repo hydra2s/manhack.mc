@@ -4,11 +4,11 @@ import static org.lwjgl.opengl.GL20.*;
 
 public class ShaderProgram {
 
-    private final int programId;
+    public final int programId;
 
-    private int vertexShaderId;
+    public int vertexShaderId;
 
-    private int fragmentShaderId;
+    public int fragmentShaderId;
 
     public ShaderProgram() throws Exception {
         programId = glCreateProgram();

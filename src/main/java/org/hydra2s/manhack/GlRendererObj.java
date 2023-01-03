@@ -3,6 +3,7 @@ package org.hydra2s.manhack;
 //
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.render.Camera;
+import net.minecraft.client.render.VertexFormat;
 import org.hydra2s.manhack.collector.GlDrawCollector;
 import org.hydra2s.manhack.shared.vulkan.GlVulkanSharedBuffer;
 import org.hydra2s.noire.descriptors.*;
@@ -31,13 +32,14 @@ import java.util.concurrent.Future;
 import java.util.function.Function;
 
 //
+import static net.minecraft.client.render.VertexFormats.*;
 import static org.lwjgl.opengl.EXTMemoryObject.*;
 import static org.lwjgl.opengl.EXTMemoryObjectWin32.glImportMemoryWin32HandleEXT;
 import static org.lwjgl.opengl.EXTSemaphore.*;
 import static org.lwjgl.opengl.EXTSemaphoreWin32.GL_HANDLE_TYPE_OPAQUE_WIN32_EXT;
 import static org.lwjgl.opengl.EXTSemaphoreWin32.glImportSemaphoreWin32HandleEXT;
 import static org.lwjgl.opengl.GL11.*;
-import static org.lwjgl.opengl.GL30.GL_RGBA32F;
+import static org.lwjgl.opengl.GL30.*;
 import static org.lwjgl.system.MemoryUtil.*;
 import static org.lwjgl.system.MemoryUtil.memSlice;
 import static org.lwjgl.vulkan.KHRAccelerationStructure.VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
@@ -67,7 +69,8 @@ public class GlRendererObj extends BasicObj {
     public PipelineObj.ComputePipelineObj finalComp;
     public PipelineObj.GraphicsPipelineObj trianglePipeline;
     public ShaderProgram glShowProgram;
-    public ShaderProgram glTransformProgram;
+
+    public HashMap<VertexFormat, TFShaderProgram> glTransformProgram;
 
     public ImageSetCInfo.FBLayout fbLayout;
     public ImageSetObj.FramebufferObj framebuffer;
@@ -220,10 +223,70 @@ public class GlRendererObj extends BasicObj {
         this.glShowProgram.link();
 
         //
-        this.glTransformProgram = new ShaderProgram();
-        this.glTransformProgram.createVertexShader(new String(Files.readAllBytes(Path.of(FabricLoader.getInstance().getGameDir().toString(), "./shaders/transform.vert")), StandardCharsets.UTF_8));
-        this.glTransformProgram.createFragmentShader(new String(Files.readAllBytes(Path.of(FabricLoader.getInstance().getGameDir().toString(), "./shaders/transform.frag")), StandardCharsets.UTF_8));
-        this.glTransformProgram.link();
+        this.glTransformProgram = new HashMap<>(){{
+            put(POSITION_COLOR_TEXTURE_LIGHT_NORMAL, new TFShaderProgram()
+                    .createVertexShader(new String(Files.readAllBytes(Path.of(FabricLoader.getInstance().getGameDir().toString(), "./shaders/transform.vert")), StandardCharsets.UTF_8), "POSITION_COLOR_TEXTURE_LIGHT_NORMAL")
+                    .createFragmentShader(new String(Files.readAllBytes(Path.of(FabricLoader.getInstance().getGameDir().toString(), "./shaders/transform.frag")), StandardCharsets.UTF_8))
+                    .link());
+
+            put(POSITION_COLOR_TEXTURE_OVERLAY_LIGHT_NORMAL, new TFShaderProgram()
+                    .createVertexShader(new String(Files.readAllBytes(Path.of(FabricLoader.getInstance().getGameDir().toString(), "./shaders/transform.vert")), StandardCharsets.UTF_8), "POSITION_COLOR_TEXTURE_OVERLAY_LIGHT_NORMAL")
+                    .createFragmentShader(new String(Files.readAllBytes(Path.of(FabricLoader.getInstance().getGameDir().toString(), "./shaders/transform.frag")), StandardCharsets.UTF_8))
+                    .link());
+
+            put(POSITION_TEXTURE_COLOR_LIGHT, new TFShaderProgram()
+                    .createVertexShader(new String(Files.readAllBytes(Path.of(FabricLoader.getInstance().getGameDir().toString(), "./shaders/transform.vert")), StandardCharsets.UTF_8), "POSITION_TEXTURE_COLOR_LIGHT")
+                    .createFragmentShader(new String(Files.readAllBytes(Path.of(FabricLoader.getInstance().getGameDir().toString(), "./shaders/transform.frag")), StandardCharsets.UTF_8))
+                    .link());
+
+            put(POSITION, new TFShaderProgram()
+                    .createVertexShader(new String(Files.readAllBytes(Path.of(FabricLoader.getInstance().getGameDir().toString(), "./shaders/transform.vert")), StandardCharsets.UTF_8), "POSITION")
+                    .createFragmentShader(new String(Files.readAllBytes(Path.of(FabricLoader.getInstance().getGameDir().toString(), "./shaders/transform.frag")), StandardCharsets.UTF_8))
+                    .link());
+
+            put(POSITION_COLOR, new TFShaderProgram()
+                    .createVertexShader(new String(Files.readAllBytes(Path.of(FabricLoader.getInstance().getGameDir().toString(), "./shaders/transform.vert")), StandardCharsets.UTF_8), "POSITION_COLOR")
+                    .createFragmentShader(new String(Files.readAllBytes(Path.of(FabricLoader.getInstance().getGameDir().toString(), "./shaders/transform.frag")), StandardCharsets.UTF_8))
+                    .link());
+
+            put(POSITION_COLOR_LIGHT, new TFShaderProgram()
+                    .createVertexShader(new String(Files.readAllBytes(Path.of(FabricLoader.getInstance().getGameDir().toString(), "./shaders/transform.vert")), StandardCharsets.UTF_8), "POSITION_COLOR_LIGHT")
+                    .createFragmentShader(new String(Files.readAllBytes(Path.of(FabricLoader.getInstance().getGameDir().toString(), "./shaders/transform.frag")), StandardCharsets.UTF_8))
+                    .link());
+
+            put(POSITION_TEXTURE, new TFShaderProgram()
+                    .createVertexShader(new String(Files.readAllBytes(Path.of(FabricLoader.getInstance().getGameDir().toString(), "./shaders/transform.vert")), StandardCharsets.UTF_8), "POSITION_TEXTURE")
+                    .createFragmentShader(new String(Files.readAllBytes(Path.of(FabricLoader.getInstance().getGameDir().toString(), "./shaders/transform.frag")), StandardCharsets.UTF_8))
+                    .link());
+
+            put(POSITION_COLOR_TEXTURE, new TFShaderProgram()
+                    .createVertexShader(new String(Files.readAllBytes(Path.of(FabricLoader.getInstance().getGameDir().toString(), "./shaders/transform.vert")), StandardCharsets.UTF_8), "POSITION_COLOR_TEXTURE")
+                    .createFragmentShader(new String(Files.readAllBytes(Path.of(FabricLoader.getInstance().getGameDir().toString(), "./shaders/transform.frag")), StandardCharsets.UTF_8))
+                    .link());
+
+            put(POSITION_TEXTURE_COLOR, new TFShaderProgram()
+                    .createVertexShader(new String(Files.readAllBytes(Path.of(FabricLoader.getInstance().getGameDir().toString(), "./shaders/transform.vert")), StandardCharsets.UTF_8), "POSITION_TEXTURE_COLOR")
+                    .createFragmentShader(new String(Files.readAllBytes(Path.of(FabricLoader.getInstance().getGameDir().toString(), "./shaders/transform.frag")), StandardCharsets.UTF_8))
+                    .link());
+
+            put(POSITION_COLOR_TEXTURE_LIGHT, new TFShaderProgram()
+                    .createVertexShader(new String(Files.readAllBytes(Path.of(FabricLoader.getInstance().getGameDir().toString(), "./shaders/transform.vert")), StandardCharsets.UTF_8), "POSITION_COLOR_TEXTURE_LIGHT")
+                    .createFragmentShader(new String(Files.readAllBytes(Path.of(FabricLoader.getInstance().getGameDir().toString(), "./shaders/transform.frag")), StandardCharsets.UTF_8))
+                    .link());
+
+            put(POSITION_TEXTURE_LIGHT_COLOR, new TFShaderProgram()
+                    .createVertexShader(new String(Files.readAllBytes(Path.of(FabricLoader.getInstance().getGameDir().toString(), "./shaders/transform.vert")), StandardCharsets.UTF_8), "POSITION_TEXTURE_LIGHT_COLOR")
+                    .createFragmentShader(new String(Files.readAllBytes(Path.of(FabricLoader.getInstance().getGameDir().toString(), "./shaders/transform.frag")), StandardCharsets.UTF_8))
+                    .link());
+
+            put(POSITION_TEXTURE_COLOR_NORMAL, new TFShaderProgram()
+                    .createVertexShader(new String(Files.readAllBytes(Path.of(FabricLoader.getInstance().getGameDir().toString(), "./shaders/transform.vert")), StandardCharsets.UTF_8), "POSITION_TEXTURE_COLOR_NORMAL")
+                    .createFragmentShader(new String(Files.readAllBytes(Path.of(FabricLoader.getInstance().getGameDir().toString(), "./shaders/transform.frag")), StandardCharsets.UTF_8))
+                    .link());
+        }};
+
+        //const char* feedbackValues[5] = { "posX", "posY", "velX", "velY", "vertID" };
+
 
         //
         return this;

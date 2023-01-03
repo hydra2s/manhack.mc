@@ -41,6 +41,7 @@ import static org.lwjgl.opengl.EXTSemaphore.glSignalSemaphoreEXT;
 import static org.lwjgl.opengl.EXTSemaphore.glWaitSemaphoreEXT;
 import static org.lwjgl.opengl.GL15.GL_DYNAMIC_DRAW;
 import static org.lwjgl.opengl.GL30.GL_MAP_WRITE_BIT;
+import static org.lwjgl.opengl.GL30C.glBindBufferRange;
 import static org.lwjgl.opengl.GL31.GL_UNIFORM_BUFFER;
 import static org.lwjgl.opengl.GL42.*;
 import static org.lwjgl.opengl.GL43.GL_VERTEX_ATTRIB_BINDING;
@@ -212,7 +213,6 @@ public class GlDrawCollector {
         // TODO: direct and zero-copy host memory support
         // TODO: fix broken boundVertexBuffer support
         var vao = glGetInteger(GL_VERTEX_ARRAY_BINDING);
-        var virtualVertexBuffer = GlContext.boundWithVao.get(vao);
         //var virtualIndexBuffer = boundVertexBufferI.getIndexBufferId() > 0 ? GlContext.virtualBufferMap.get(boundVertexBufferI.getIndexBufferId()) : GlContext.boundBuffers.get(GL_ELEMENT_ARRAY_BUFFER);
         //if (virtualIndexBuffer.realSize <= 0) { virtualIndexBuffer = GlContext.boundBuffers.get(GL_ELEMENT_ARRAY_BUFFER); };
 
@@ -239,27 +239,28 @@ public class GlDrawCollector {
 
         //
         drawCallData.vertexDataOffset = vertexDataOffset;
+        var vertexDataSize = count * 48;
 
         // TODO: replace by array based
-        drawCallData.vertexBinding = new VirtualTempBinding(drawCallData.vertexDataOffset, virtualVertexBuffer.realSize, drawCallData.vertexStride);
+        drawCallData.vertexBinding = new VirtualTempBinding(drawCallData.vertexDataOffset, vertexDataSize, drawCallData.vertexStride);
         drawCallData.vertexBinding.virtualBuffer = drawCallData.vertexBuffer;
         drawCallData.vertexBinding.format = VK_FORMAT_R32G32B32_SFLOAT;
         drawCallData.vertexBinding.relativeOffset = 0;
 
         // TODO: replace by array based
-        drawCallData.uvBinding = new VirtualTempBinding(drawCallData.vertexDataOffset, virtualVertexBuffer.realSize, drawCallData.vertexStride);
+        drawCallData.uvBinding = new VirtualTempBinding(drawCallData.vertexDataOffset, vertexDataSize, drawCallData.vertexStride);
         drawCallData.uvBinding.virtualBuffer = drawCallData.vertexBuffer;
         drawCallData.uvBinding.format = VK_FORMAT_R32G32_SFLOAT;
         drawCallData.uvBinding.relativeOffset = 28;
 
         // TODO: replace by array based
-        drawCallData.colorBinding = new VirtualTempBinding(drawCallData.vertexDataOffset, virtualVertexBuffer.realSize, drawCallData.vertexStride);
+        drawCallData.colorBinding = new VirtualTempBinding(drawCallData.vertexDataOffset, vertexDataSize, drawCallData.vertexStride);
         drawCallData.colorBinding.virtualBuffer = drawCallData.vertexBuffer;
         drawCallData.colorBinding.format = VK_FORMAT_R32_UINT; // rgba8unorm de-facto
         drawCallData.colorBinding.relativeOffset = 36;
 
         // TODO: replace by array based
-        drawCallData.normalBinding = new VirtualTempBinding(drawCallData.vertexDataOffset, virtualVertexBuffer.realSize, drawCallData.vertexStride);
+        drawCallData.normalBinding = new VirtualTempBinding(drawCallData.vertexDataOffset, vertexDataSize, drawCallData.vertexStride);
         drawCallData.normalBinding.virtualBuffer = drawCallData.vertexBuffer;
         drawCallData.normalBinding.format = VK_FORMAT_R32_UINT; // rgba8snorm de-facto
         drawCallData.normalBinding.relativeOffset = 12;
@@ -323,9 +324,6 @@ public class GlDrawCollector {
         //
         GlVulkanSharedBuffer.uniformDataBufferHost.unmap(GL_UNIFORM_BUFFER);
 
-        // is OpenGL only...
-        var vOffset = virtualVertexBuffer.offset.get(0);
-
         // is Vulkan with OpenGL shared!
         var _vOffset = drawCallData.vertexBuffer.offset.get(0) + drawCallData.vertexDataOffset;
 
@@ -337,15 +335,20 @@ public class GlDrawCollector {
 
         //
         //GL45.glResumeTransformFeedback();
-        //GlContext.rendererObj.glTransformProgram.bind();
-        //GL45.glDrawElements(mode, count, type, indices);
+        var vertexFormat = GlContext.boundVertexBuffer.getVertexFormat();
+        //GlContext.rendererObj.glTransformProgram.get(vertexFormat).bind();
+
+        //glBindBufferRange(GL_TRANSFORM_FEEDBACK_BUFFER, 0, GlVulkanSharedBuffer.vertexDataBuffer.glStorageBuffer, GlVulkanSharedBuffer.vertexDataBuffer.offset.get(0) + drawCallData.vertexDataOffset, vertexDataSize);
+        //glBeginTransformFeedback(GL_TRIANGLES);
+        GL45.glDrawElements(mode, count, type, indices);
         //GL45.glPauseTransformFeedback();
+        //glEndTransformFeedback();
 
         // OpenGL, you are drunk?
         GL45.glFinish();
 
         //
-        vertexDataOffset += virtualVertexBuffer.realSize;
+        vertexDataOffset += vertexDataSize;//virtualVertexBuffer.realSize;
         collectedDraws.add(drawCallData);
         drawCount++; elementCount += count;
 

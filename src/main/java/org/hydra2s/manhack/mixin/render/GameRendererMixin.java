@@ -41,22 +41,17 @@ public class GameRendererMixin {
         GlContext.rendererObj.camera = camera;
         camera.getRotation().get(GlContext.rendererObj.viewMatrix);
         GlContext.rendererObj.viewMatrix = GlContext.rendererObj.viewMatrix.transpose();
-        //GlDrawCollector.resetDraw();
+        GlDrawCollector.resetDraw();
 
         //
         GlContext.worldRendering = true;
         //glBindTransformFeedback(GL_TRANSFORM_FEEDBACK, GlContext.glTransformFeedback);
-        //glBindBufferRange(GL_TRANSFORM_FEEDBACK_BUFFER, 0, GlVulkanSharedBuffer.vertexDataBuffer.glStorageBuffer, GlVulkanSharedBuffer.vertexDataBuffer.offset.get(0), GlVulkanSharedBuffer.vertexDataBuffer.realSize);
-        //glEnable(GL_RASTERIZER_DISCARD);
         //glBeginTransformFeedback(GL_TRIANGLES);
         //glPauseTransformFeedback();
-
         this.client.worldRenderer.render(matrices, tickDelta, limitTime, renderBlockOutline, camera, gameRenderer, lightmapTextureManager, positionMatrix);
-
         //glEndTransformFeedback();
-        //glDisable(GL_RASTERIZER_DISCARD);
 
         GlContext.worldRendering = false;
-        //GlContext.rendererObj.tickRendering();
+        GlContext.rendererObj.tickRendering();
     }
 }

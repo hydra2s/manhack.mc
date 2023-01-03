@@ -14,11 +14,11 @@ public class RenderSystemMixin {
     //
     @Redirect(method="drawElements", at=@At(value="INVOKE", target="Lcom/mojang/blaze3d/platform/GlStateManager;_drawElements(IIIJ)V"))
     private static void onDrawElements(int mode, int count, int type, long indices) throws Exception {
-        //if (GlContext.worldRendering) {
-            //GlDrawCollector.collectDraw(mode, count, type, indices);
-        //} else {
+        if (GlContext.worldRendering) {
+            GlDrawCollector.collectDraw(mode, count, type, indices);
+        } else {
             GlStateManager._drawElements(mode, count, type, indices);
-        //}
+        }
     }
 
 }
