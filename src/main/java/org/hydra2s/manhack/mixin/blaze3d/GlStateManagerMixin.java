@@ -95,10 +95,7 @@ public class GlStateManagerMixin {
         // Here is shared vulkan problems...
         // Vulkan API isn't know about memory mapping.
         var iVBO = GlContext.boundBuffers.get(GL_ELEMENT_ARRAY_BUFFER);
-
-        //
         GL11.glDrawElements(mode, count, type, indices + iVBO.offset.get(0));
-        GlDrawCollector.collectDraw(mode, count, type, indices);
     }
 
 

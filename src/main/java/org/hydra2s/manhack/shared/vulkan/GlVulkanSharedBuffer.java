@@ -29,7 +29,7 @@ import static org.lwjgl.opengl.EXTMemoryObject.*;
 import static org.lwjgl.opengl.EXTMemoryObjectWin32.GL_HANDLE_TYPE_OPAQUE_WIN32_EXT;
 import static org.lwjgl.opengl.EXTMemoryObjectWin32.glImportMemoryWin32HandleEXT;
 import static org.lwjgl.opengl.GL11.*;
-import static org.lwjgl.opengl.GL15.GL_DYNAMIC_DRAW;
+import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL30.GL_R8UI;
 import static org.lwjgl.opengl.GL30.GL_RED_INTEGER;
 import static org.lwjgl.opengl.GL31.GL_UNIFORM_BUFFER;
@@ -58,6 +58,17 @@ public class GlVulkanSharedBuffer implements GlBaseSharedBuffer {
     public static VkAccelerationStructureBuildRangeInfoKHR.Buffer drawRanges = null;
     public static VkMultiDrawInfoEXT.Buffer multiDraw = null;
 
+
+    // TODO: support for typed (entity, indexed, blocks, etc.)
+    public static Map<Integer, VkSharedBuffer> sharedBufferMap = new HashMap<Integer, VkSharedBuffer>();
+    public static GlVulkanVirtualBuffer.VirtualBufferObj uniformDataBufferHost;
+    public static GlVulkanVirtualBuffer.VirtualBufferObj uniformDataBuffer;
+
+
+    public static GlVulkanVirtualBuffer.VirtualBufferObj vertexDataBuffer;
+    public static GlVulkanVirtualBuffer.VirtualBufferObj indexDataBuffer;
+
+
     // TODO: unify with GlRendererObj
     public static void initialize() throws Exception {
 
@@ -73,11 +84,21 @@ public class GlVulkanSharedBuffer implements GlBaseSharedBuffer {
         //
         uniformDataBufferHost = new GlVulkanVirtualBuffer.VirtualBufferObj(2);
         uniformDataBuffer = new GlVulkanVirtualBuffer.VirtualBufferObj(3);
+        vertexDataBuffer = new GlVulkanVirtualBuffer.VirtualBufferObj(1);
+        indexDataBuffer = new GlVulkanVirtualBuffer.VirtualBufferObj(1);
 
         // TODO: correct sizeof of uniform
-        uniformDataBufferHost.deallocate().allocate(uniformStride * maxDrawCalls, GL_DYNAMIC_DRAW).data(GL_UNIFORM_BUFFER, uniformStride * maxDrawCalls, GL_DYNAMIC_DRAW);
+        uniformDataBufferHost.deallocate().allocate(uniformStride, GL_DYNAMIC_DRAW).data(GL_UNIFORM_BUFFER, uniformStride, GL_DYNAMIC_DRAW);
         uniformDataBuffer.deallocate().allocate(uniformStride * maxDrawCalls, GL_DYNAMIC_DRAW).data(GL_UNIFORM_BUFFER, uniformStride * maxDrawCalls, GL_DYNAMIC_DRAW);
-        
+
+        //
+        var vSize = (averageVertexCount * averageVertexStride * maxDrawCalls * 3L) >> 1L;
+        var iSize = averageVertexCount * 4L * maxDrawCalls * 3L;
+
+        //
+        vertexDataBuffer.deallocate().allocate(vSize, GL_DYNAMIC_DRAW).data(GL_ARRAY_BUFFER, vSize, GL_DYNAMIC_DRAW);
+        indexDataBuffer.deallocate().allocate(iSize, GL_DYNAMIC_DRAW).data(GL_ELEMENT_ARRAY_BUFFER, iSize, GL_DYNAMIC_DRAW);
+
         // create the largest acceleration structure allocation (up to 2 million)
         var _memoryAllocator = GlContext.rendererObj.memoryAllocator;
 
@@ -175,10 +196,7 @@ public class GlVulkanSharedBuffer implements GlBaseSharedBuffer {
         }
     };
 
-    // TODO: support for typed (entity, indexed, blocks, etc.)
-    public static Map<Integer, VkSharedBuffer> sharedBufferMap = new HashMap<Integer, VkSharedBuffer>();
-    public static GlVulkanVirtualBuffer.VirtualBufferObj uniformDataBufferHost;
-    public static GlVulkanVirtualBuffer.VirtualBufferObj uniformDataBuffer;
+
 
     // TODO: add host-based memory support (as version)
     public static VkSharedBuffer createBuffer(long defaultSize, boolean isHost) {

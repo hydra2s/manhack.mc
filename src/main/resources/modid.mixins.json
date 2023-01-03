@@ -17,6 +17,7 @@
     "render.ShaderProgramMixin",
     "render.GuiMixin",
     "render.TextRendererMixin",
+    "render.RenderSystemMixin",
     "vertex.VertexBufferMixin",
     "vertex.VertexFormatMixin",
     "vertex.VertexFormatElementMixin",
