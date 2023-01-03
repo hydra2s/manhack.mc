@@ -28,21 +28,13 @@ public class WorldRendererMixin {
     //
     @Inject(method="render", at=@At("HEAD"))
     public void onRenderBegin(MatrixStack matrices, float tickDelta, long limitTime, boolean renderBlockOutline, Camera camera, GameRenderer gameRenderer, LightmapTextureManager lightmapTextureManager, Matrix4f positionMatrix, CallbackInfo ci) throws Exception {
-        GlContext.worldRendering = true;
-        GlContext.rendererObj.camera = camera;
-        camera.getRotation().get(GlContext.rendererObj.viewMatrix);
-        GlContext.rendererObj.viewMatrix = GlContext.rendererObj.viewMatrix.transpose();
-        GlDrawCollector.resetDraw();
+
     }
 
     //
     @Inject(method="render", at=@At("RETURN"))
     public void onRenderEnd(MatrixStack matrices, float tickDelta, long limitTime, boolean renderBlockOutline, Camera camera, GameRenderer gameRenderer, LightmapTextureManager lightmapTextureManager, Matrix4f positionMatrix, CallbackInfo ci) throws Exception {
 
-        // Test rendering!
-        // Plan was partially failed...
-        GlContext.rendererObj.tickRendering();
-        GlContext.worldRendering = false;
     }
 
 }

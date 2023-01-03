@@ -344,6 +344,7 @@ public class GlDrawCollector {
         var _iOffset = drawCallData.indexBuffer.offset.get(0);
 
         //
+        GL45.glFinish();
         GL45.glCopyNamedBufferSubData(
             virtualVertexBuffer.glStorageBuffer, drawCallData.vertexBuffer.glStorageBuffer,
                 vOffset, _vOffset,
@@ -391,6 +392,7 @@ public class GlDrawCollector {
 
         //
         if (GlVulkanSharedBuffer.uniformDataBufferHost.glStorageBuffer > 0 && GlVulkanSharedBuffer.uniformDataBuffer.glStorageBuffer > 0) {
+            GL45.glFinish();
             GL45.glCopyNamedBufferSubData(
                     GlVulkanSharedBuffer.uniformDataBufferHost.glStorageBuffer, GlVulkanSharedBuffer.uniformDataBuffer.glStorageBuffer,
                     GlVulkanSharedBuffer.uniformDataBufferHost.offset.get(0), GlVulkanSharedBuffer.uniformDataBuffer.offset.get(0),
