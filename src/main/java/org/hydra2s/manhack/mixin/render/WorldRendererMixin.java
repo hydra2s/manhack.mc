@@ -40,8 +40,6 @@ public class WorldRendererMixin {
     public void onRenderEnd(MatrixStack matrices, float tickDelta, long limitTime, boolean renderBlockOutline, Camera camera, GameRenderer gameRenderer, LightmapTextureManager lightmapTextureManager, Matrix4f positionMatrix, CallbackInfo ci) throws Exception {
 
         // Test rendering!
-        // TODO: OpenGL isn't "know" about your/our virtual swap-chain
-        // TODO: pardon, but needs OpenGL shader for draw such image, or fully replace to Vulkan API
         // Plan was partially failed...
         GlContext.rendererObj.tickRendering();
         GlContext.worldRendering = false;

@@ -52,6 +52,7 @@ public class GlStateManagerMixin {
         var VBO = GlContext.boundBuffers.get(GL_ARRAY_BUFFER);
         VBO.vao = glVao;
         VBO.stride = stride;
+        GlContext.boundWithVao.put(glVao, VBO);
 
         //
         GL45.glVertexArrayAttribBinding(VBO.vao, index, VBO.bindingIndex = vBinding);
@@ -75,6 +76,7 @@ public class GlStateManagerMixin {
         var VBO = GlContext.boundBuffers.get(GL_ARRAY_BUFFER);
         VBO.vao = glVao;
         VBO.stride = stride;
+        GlContext.boundWithVao.put(glVao, VBO);
 
         //
         GL45.glVertexArrayAttribBinding(VBO.vao, index, VBO.bindingIndex = vBinding);

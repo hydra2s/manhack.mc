@@ -31,7 +31,7 @@ public class VertexBufferMixin implements VertexBufferInterface {
     //
     @Inject(method="bind", at=@At(value = "HEAD"))
     void onBind(CallbackInfo ci) {
-        GlContext.boundVertexBuffer = (VertexBuffer)(Object)this;
+        GlContext.boundVertexBuffer = GlContext.worldRendering ? (VertexBuffer)(Object)this : null;
     }
 
     //

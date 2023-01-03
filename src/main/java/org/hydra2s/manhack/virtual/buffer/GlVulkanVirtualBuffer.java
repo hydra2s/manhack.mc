@@ -72,9 +72,6 @@ public class GlVulkanVirtualBuffer implements GlBaseVirtualBuffer {
                 return VK_SUCCESS;
             });*/
 
-            // OpenGL, you are drunk?
-            //glFinish();
-
             //
             return (this.allocatedMemory = this.mapped.obj.map(this.realSize, offset.get(0)));
         }
@@ -103,13 +100,6 @@ public class GlVulkanVirtualBuffer implements GlBaseVirtualBuffer {
         public GlBaseVirtualBuffer.VirtualBufferObj deallocate() throws Exception {
             this.assert_();
             if (this.allocId.get(0) != 0) {
-                //if (this.glStorageBuffer > 0) {
-                    //glClearNamedBufferSubData(this.glStorageBuffer, GL_R8UI, this.offset.get(0), this.blockSize, GL_RED_INTEGER, GL_UNSIGNED_BYTE, memAlloc(1).put(0, (byte) 0));
-
-                    // OpenGL, you are drunk?
-                    //GL45.glFinish();
-                //}
-
                 //
                 if (this.mapped != null) {
                     vmaVirtualFree(this.mapped.vb.get(0), this.allocId.get(0));
@@ -168,9 +158,6 @@ public class GlVulkanVirtualBuffer implements GlBaseVirtualBuffer {
             this.realSize = data.remaining();
             if (this.glStorageBuffer > 0) {
                 glNamedBufferSubData(this.glStorageBuffer, this.offset.get(0), data);
-
-                // OpenGL, you are drunk?
-                GL45.glFinish();
             }
             return this.bindVertex();
         }
@@ -181,11 +168,14 @@ public class GlVulkanVirtualBuffer implements GlBaseVirtualBuffer {
             this.realSize = size;
             if (this.glStorageBuffer > 0) {
                 //glClearNamedBufferSubData(this.glStorageBuffer, GL_R8UI, this.offset.get(0), this.realSize = size, GL_RED_INTEGER, GL_UNSIGNED_BYTE, memAlloc(1).put(0, (byte) 0));
-
-                // OpenGL, you are drunk?
-                //GL45.glFinish();
             }
             return this.bindVertex();
+        }
+
+        @Override
+        public void delete() throws Exception {
+            this.mapped.virtualBuffers.remove(this);
+            super.delete();
         }
     }
 

@@ -121,13 +121,12 @@ public class GlDrawCollector {
     // PROBLEM WAS FOUND HERE!
     // Old Data Still Reused...
     public static void resetDraw() throws Exception {
-        var sharedBuffer = GlVulkanSharedBuffer.sharedBufferMap.get(1);
-
-        //
         collectedDraws.forEach((drawCall)->{
             try {
-                drawCall.vertexBuffer.delete();
-                drawCall.indexBuffer.delete();
+                //if (!GlContext.worldRendering) {
+                    drawCall.vertexBuffer.delete();
+                    drawCall.indexBuffer.delete();
+                //}
                 drawCall.vertexBuffer = null;
                 drawCall.indexBuffer = null;
                 drawCall.vertexBinding = null;
@@ -147,20 +146,25 @@ public class GlDrawCollector {
         elementCount = 0;
         potentialOverflow = false;
 
-        // TODO: correct sizeof of uniform
+        //
         ((AccelerationStructureCInfo)GlVulkanSharedBuffer.bottomLvl.cInfo).geometries.clear();
 
         // fully nullify that buffer
-        // TODO: use Vulkan API for nullification
-        //glClearNamedBufferSubData(sharedBuffer.glStorageBuffer, GL_R8UI, 0, sharedBuffer.bufferCreateInfo.size, GL_RED_INTEGER, GL_UNSIGNED_BYTE, memAlloc(1).put(0, (byte) 0));
-        //if (sharedBuffer.vb.get(0) != 0) { vmaClearVirtualBlock(sharedBuffer.vb.get(0)); }
+        //if (!GlContext.worldRendering)
+        {
+            GlVulkanSharedBuffer.sharedBufferMap.get(1).resetAllocations();
+            GlVulkanSharedBuffer.sharedBufferMap.get(2).resetAllocations();
+            GlVulkanSharedBuffer.sharedBufferMap.get(3).resetAllocations();
 
-        //
-        GlVulkanSharedBuffer.uniformDataBufferHost.deallocate().allocate(GlVulkanSharedBuffer.uniformStride * GlVulkanSharedBuffer.maxDrawCalls, GL_DYNAMIC_DRAW).data(GL_UNIFORM_BUFFER, GlVulkanSharedBuffer.uniformStride * GlVulkanSharedBuffer.maxDrawCalls, GL_DYNAMIC_DRAW);
-        GlVulkanSharedBuffer.uniformDataBuffer.deallocate().allocate(GlVulkanSharedBuffer.uniformStride * GlVulkanSharedBuffer.maxDrawCalls, GL_DYNAMIC_DRAW).data(GL_UNIFORM_BUFFER, GlVulkanSharedBuffer.uniformStride * GlVulkanSharedBuffer.maxDrawCalls, GL_DYNAMIC_DRAW);
+            //
+            GlVulkanSharedBuffer.uniformDataBufferHost = new GlVulkanVirtualBuffer.VirtualBufferObj(2);
+            GlVulkanSharedBuffer.uniformDataBuffer = new GlVulkanVirtualBuffer.VirtualBufferObj(3);
+            GlVulkanSharedBuffer.uniformDataBufferHost.deallocate().allocate(GlVulkanSharedBuffer.uniformStride * GlVulkanSharedBuffer.maxDrawCalls, GL_DYNAMIC_DRAW).data(GL_UNIFORM_BUFFER, GlVulkanSharedBuffer.uniformStride * GlVulkanSharedBuffer.maxDrawCalls, GL_DYNAMIC_DRAW);
+            GlVulkanSharedBuffer.uniformDataBuffer.deallocate().allocate(GlVulkanSharedBuffer.uniformStride * GlVulkanSharedBuffer.maxDrawCalls, GL_DYNAMIC_DRAW).data(GL_UNIFORM_BUFFER, GlVulkanSharedBuffer.uniformStride * GlVulkanSharedBuffer.maxDrawCalls, GL_DYNAMIC_DRAW);
 
-        //
-        glFinish();
+            //
+            glFinish();
+        }
     }
 
     // collect draw calls for batch draw and acceleration structure

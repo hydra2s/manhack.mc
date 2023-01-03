@@ -28,9 +28,12 @@ import java.util.Map;
 import static org.lwjgl.opengl.EXTMemoryObject.*;
 import static org.lwjgl.opengl.EXTMemoryObjectWin32.GL_HANDLE_TYPE_OPAQUE_WIN32_EXT;
 import static org.lwjgl.opengl.EXTMemoryObjectWin32.glImportMemoryWin32HandleEXT;
-import static org.lwjgl.opengl.GL11.GL_TRUE;
+import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL15.GL_DYNAMIC_DRAW;
+import static org.lwjgl.opengl.GL30.GL_R8UI;
+import static org.lwjgl.opengl.GL30.GL_RED_INTEGER;
 import static org.lwjgl.opengl.GL31.GL_UNIFORM_BUFFER;
+import static org.lwjgl.opengl.GL45.glClearNamedBufferSubData;
 import static org.lwjgl.system.MemoryUtil.*;
 import static org.lwjgl.util.vma.Vma.*;
 import static org.lwjgl.util.vma.Vma.vmaCreateVirtualBlock;
@@ -150,9 +153,25 @@ public class GlVulkanSharedBuffer implements GlBaseSharedBuffer {
 
         // also, is this full size
         public VmaVirtualBlockCreateInfo vbInfo = VmaVirtualBlockCreateInfo.calloc().flags(VMA_VIRTUAL_ALLOCATION_CREATE_STRATEGY_MIN_OFFSET_BIT | VMA_VIRTUAL_ALLOCATION_CREATE_STRATEGY_MIN_TIME_BIT | VMA_VIRTUAL_ALLOCATION_CREATE_STRATEGY_MIN_MEMORY_BIT);
+        public ArrayList<GlVulkanVirtualBuffer.VirtualBufferObj> virtualBuffers = new ArrayList<GlVulkanVirtualBuffer.VirtualBufferObj>();
 
         public VkSharedBuffer() {
+            virtualBuffers = new ArrayList<GlVulkanVirtualBuffer.VirtualBufferObj>();
+            vbInfo = VmaVirtualBlockCreateInfo.calloc().flags(VMA_VIRTUAL_ALLOCATION_CREATE_STRATEGY_MIN_OFFSET_BIT | VMA_VIRTUAL_ALLOCATION_CREATE_STRATEGY_MIN_TIME_BIT | VMA_VIRTUAL_ALLOCATION_CREATE_STRATEGY_MIN_MEMORY_BIT);
+        }
 
+        //
+        public VkSharedBuffer resetAllocations() {
+            this.virtualBuffers.forEach((alloc)->{
+                try {
+                    alloc.delete();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            });
+            glClearNamedBufferSubData(this.glStorageBuffer, GL_R8UI, 0, this.bufferCreateInfo.size, GL_RED_INTEGER, GL_UNSIGNED_BYTE, memAlloc(1).put(0, (byte) 0));
+            if (this.vb.get(0) != 0) { vmaClearVirtualBlock(this.vb.get(0)); }
+            return this;
         }
     };
 

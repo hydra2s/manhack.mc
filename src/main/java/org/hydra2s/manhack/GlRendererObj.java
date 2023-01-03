@@ -370,8 +370,7 @@ public class GlRendererObj extends BasicObj {
         GL45.glBindTexture(GL13.GL_TEXTURE_2D, glSwapchainImages.get(imageIndex));
         GL45.glDisable(GL45.GL_CULL_FACE);
         GL45.glDrawArrays(GL11.GL_TRIANGLES, 0, 6);
-
-
+        GL45.glBindVertexArray(0);
 
         //System.out.println("GL semaphore is probably broken...");
 
