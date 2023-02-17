@@ -1,4 +1,4 @@
-# 💔 Manhack (teaser) 💔
+# 💔 Manhack (notice) 💔
 
 The new Minecraft rendering mod, based on [Vulkan API](https://registry.khronos.org/vulkan/) (aka. LWJGL 3.3.2) and [Noire.java](https://github.com/hydra2s/noire.java). Also, this is, probably, final project of and in my life (i.e. finale of my 2023 year).
 
